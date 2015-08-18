@@ -1,4 +1,4 @@
-import yaml, httplib
+import yaml, httplib, string
 
 class Vulnerability():
 
@@ -34,20 +34,54 @@ class Vulnerability():
 #        'fixedin': FieldValidator([is_version], False),
 #        'unaffected': FieldValidator([is_version], False),
 #    }
-#}
+#}i
+
+#VERSION_REGEX = regex_compile(
+#    r'^(?P<condition>[><=]=)'
+#    r'(?P<version>[^, ]+)'
+#    r'(?:,(?P<series>[^, ]+)){0,1}$'
+#)
+
 
 def parseYaml(document):
 	stream = file(document)
 	data = yaml.load(stream)
-	return data
+	return data['affected']
 
 #http://central.maven.org/maven2/org/springframework/spring-web/4.1.6.RELEASE/spring-web-4.1.6.RELEASE.jar
-def getArtifact(data):
-	page = httplib.HTTPConnection("central.maven.org")
-	groupId = data.affected.groupId.replace('.', '/')
-	page.request("GET", "maven2/" + groupId + data.affected.artifactId)
-	response = page.getresponse()
-	print response
+def genVersions(jars):
+	for j in jars:
+		ranges = j['version']
+		for r in ranges:
+			yield r
 
-data = parseYaml("../victims-cve-db/database/java/2015/3192.yaml")
-getArtifact(data)
+def genVersion(version):
+	if version[0] == '>':
+		genDown(splitRange(version[2:]))
+	elif version[0] == '<':
+		genUp(splitRange(version[2:]))
+	else:
+		pass
+#TODO test singe version and validate
+#		yield version[1:]
+
+def splitRange(numRange):
+	return string.split(numRange, ',')
+
+def genUp(numRangeArray):
+	toScale = numRangeArray[0].count('.')
+	fromScale = numRangeArray[1].count('.')
+	fromValue = numRangeArray[1]
+	while fromScale < toScale:
+		fromValue += '.0'
+		fromScale = fromValue.count('.')
+	numRangeArray[1] = fromValue
+	print numRangeArray
+
+def genDown(numRangeArray):
+	pass
+
+jars = parseYaml("../victims-cve-db/database/java/2015/3192.yaml")
+ranges = genVersions(jars)
+for r in ranges:
+	genVersion(r)
