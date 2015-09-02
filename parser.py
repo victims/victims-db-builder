@@ -34,72 +34,20 @@ import urllib2
 #)
 
 ##############################################################
-## Parsing variables and functions
-##############################################################
-
-mvnRoot="http://mvnrepository.com/artifact/"
-## upper range of z maintenance release in maven page, just a guess
-maxRange = 30
-
-def genVersions(jars):
-	for j in jars:
-		ranges = j['version']
-		for r in ranges:
-			yield r
-
-#http://central.maven.org/maven2/org/springframework/spring-web/4.1.6.RELEASE/spring-web-4.1.6.RELEASE.jar
-def genVersion(version):
-	if version[0] == '>':
-		genDown(splitRange(version[2:]))
-	elif version[0] == '<':
-		genUp(splitRange(version[2:]))
-	else:
-		pass
-#TODO test singe version and validate
-#		yield version[1:]
-
-def splitRange(numRange):
-	return string.split(numRange, ',')
-
-def genUp(numRangeArray):
-	toScale = numRangeArray[0].count('.')
-	fromScale = numRangeArray[1].count('.')
-	fromValue = numRangeArray[1]
-	while fromScale < toScale:
-		fromValue += '.0'
-		fromScale = fromValue.count('.')
-	numRangeArray[1] = fromValue
-	print numRangeArray
-
-def genDown(numRangeArray):
-    pass
-
-def genVerString(version):
-    numRangeArray = splitRange(version[2:])
-    toScale = numRangeArray[0].count('.')
-    fromScale = numRangeArray[1].count('.')
-    fromValue = numRangeArray[1]
-    while fromScale < toScale:
-    	fromValue += '.0'
-        fromScale = fromValue.count('.')
-    numRangeArray[1] = fromValue
-    return numRangeArray
-
-# Assumes string "4.0.2"
-# Returns list of [4.0,2] for looping as float
-def retlowHigh(string):
-	valList = []
-	k = string.rfind(".")
-	valList.append(string[:k])
-	valList.append(string[k+1:])
-	return valList
-
-##############################################################
 ## Vulnerability class
 ## Used for both parsing yaml file and building individual jar files
 ##############################################################
 
-class Vulnerability():
+class Vulnerability:
+
+    #This Base URL will only work for Java, need to add for Python and Ruby
+    indexBaseUrl="http://mvnrepository.com/artifact/"
+
+
+    ## upper range of z maintenance release in maven page
+    maxRange = 99
+
+    listVer = []
 	
     def __init__(self, cve, title, description, cvss_v2, references, affected):
         self.cve = cve
@@ -117,11 +65,14 @@ class Vulnerability():
         self.description = data['description']
         self.cvss_v2 = data['cvss_v2']
         self.references = data['references']
-        self.affected = data['affected']	
+        self.affected = data['affected']
+	#TODO this will only assign last artifact/group in affected list
+        ##If there are mulitiple affected, need to create an affected list	
 	for j in self.affected:
 		self.groupId = j['groupId']
 		self.artifactId = j['artifactId']
 		self.verRanges = j['version']
+        self.anchor = "/artifact/" + self.groupId + "/" + self.artifactId + "/"   
     
     ## Prints out basics
     def print_flaw(self):
@@ -129,19 +80,67 @@ class Vulnerability():
         print "groupId= " + self.groupId
 	print "artifactId= " + self.artifactId
 	for r in self.verRanges:
-        	genVersion(r)
+        	self.genVersion(r)
 
-## Opens Maven file for product, and checks through the version range to see whether
-## it is listed as a release on the page
-## Checks page for ex.: "/artifact/org.springframework/spring-web/4.0.9.RELEASE"
-## Example range: <=3.2.13,3.2
+    def genVersion(self, version):
+	if version[0] == '>':
+		genDown(self.splitRange(version[2:]))
+	elif version[0] == '<':
+		self.genUp(self.splitRange(version[2:]))
+	else:
+		pass
+
+    #TODO test singe version and validate
+    #		yield version[1:]
+
+    def splitRange(self, numRange):
+	return string.split(numRange, ',')
+
+    def genUp(self, numRangeArray):
+	toScale = numRangeArray[0].count('.')
+	fromScale = numRangeArray[1].count('.')
+	fromValue = numRangeArray[1]
+	while fromScale < toScale:
+		fromValue += '.0'
+		fromScale = fromValue.count('.')
+	numRangeArray[1] = fromValue
+	print numRangeArray
+
+    def genDown(numRangeArray):
+        pass
+
+    def genVerString(self, version):
+        numRangeArray = self.splitRange(version[2:])
+        toScale = numRangeArray[0].count('.')
+        fromScale = numRangeArray[1].count('.')
+        fromValue = numRangeArray[1]
+        while fromScale < toScale:
+    	    fromValue += '.0'
+            fromScale = fromValue.count('.')
+        numRangeArray[1] = fromValue
+        return numRangeArray
+
+    # Assumes string "4.0.2"
+    # Returns list of [4.0,2] for looping as float
+    def retlowHigh(self, string):
+	valList = []
+	k = string.rfind(".")
+	valList.append(string[:k])
+	valList.append(string[k+1:])
+	return valList
+
+
+
+    ## Opens Maven file for product, and checks through the version range to see whether
+    ## it is listed as a release on the page
+    ## Checks page for ex.: "/artifact/org.springframework/spring-web/4.0.9.RELEASE"
+    ## Example range: <=3.2.13,3.2
 
     def checkMvnVer(self):
-	listVer = []
-	mvnFile = mvnRoot + self.groupId + "/" + self.artifactId
-	## test file: mvnFile = mvnRoot + "/sillness"
+	#TODO This will not work for Python and Ruby
+	coords = self.indexBaseUrl + self.groupId + "/" + self.artifactId
 	try:
- 		response = urllib2.urlopen(mvnFile)
+ 		response = urllib2.urlopen(coords)
 	except urllib2.URLError, e:
 		if not hasattr(e, "code"):
 			raise
@@ -150,17 +149,15 @@ class Vulnerability():
 		return [] 
 
 	HTMLPage = response.read()
-              
-        anchor = "/artifact/" + self.groupId + "/" + self.artifactId + "/"
 	
 	for r in self.verRanges:
-		listString = genVerString(r)
+		listString = self.genVerString(r)
 		
 		#split out values
-		valList=retlowHigh(listString[1])
+		valList= self.retlowHigh(listString[1])
 		lowDown = float(valList[0])
 		lowUp = int(valList[1])
-		valList=retlowHigh(listString[0])
+		valList= self.retlowHigh(listString[0])
 		highDown = float(valList[0])
 		highUp = int(valList[1])
 		
@@ -168,31 +165,25 @@ class Vulnerability():
         	while ver >= lowDown and ver <= highDown:
 	                if (ver == lowDown and ver == highDown):
 			  	for i in range (lowUp,highUp+1):	
-					tmpVers = str(ver) + "." + str(i)
-					tmpAnchor = anchor + tmpVers + ".RELEASE"
-					if tmpAnchor in HTMLPage:
-                        			listVer.append(tmpVers)
+					self.addVer(ver, i, HTMLPage)				
 			elif (ver == lowDown):
-				for i in range (lowUp,maxRange):
-					tmpVers = str(ver) + "." + str(i)
-					tmpAnchor = anchor + tmpVers + ".RELEASE"
-					if tmpAnchor in HTMLPage:
-                        			listVer.append(tmpVers)
+				for i in range (lowUp, self.maxRange):
+					self.addVer(ver, i, HTMLPage)					
 			elif (ver == highDown):
 				for i in range(highUp+1):
-					tmpVers = str(ver) + "." + str(i)
-					tmpAnchor = anchor + tmpVers + ".RELEASE"
-					if tmpAnchor in HTMLPage:
-                        			listVer.append(tmpVers)
+					self.addVer(ver, i, HTMLPage)				
 			else:
-				for i in range(maxRange):
-					tmpVers = str(ver) + "." + str(i)
-					tmpAnchor = anchor + tmpVers + ".RELEASE"
-					if tmpAnchor in HTMLPage:
-        					listVer.append(tmpVers)
+				for i in range(self.maxRange):
+					self.addVer(ver, i, HTMLPage)					
                 	ver += 0.1
-	return listVer 
+	return self.listVer 
 	
+    def addVer(self, ver, i, HTMLPage):
+        tmpVers = str(ver) + "." + str(i)
+	tmpAnchor = self.anchor + tmpVers 
+	if tmpAnchor in HTMLPage:
+            self.listVer.append(tmpVers)
+
 
 ##http://central.maven.org/maven2/org/springframework/spring-web/4.1.6.RELEASE/spring-web-4.1.6.RELEASE.jar
 ##############################################################
@@ -202,7 +193,7 @@ class Vulnerability():
 jars = Vulnerability("../victims-cve-db/database/java/2015/3192.yaml")
 jars.print_flaw()
 listVers = jars.checkMvnVer() 
-#if listVers:
-#	print "Found releases in page:"
-#	for v in listVers:
-#		print v
+if listVers:
+	print "Found releases in page:"
+	for v in listVers:
+		print v
