@@ -7,18 +7,16 @@ username="jshepher"
 password="Welcome1!"
 
 def uploadArchive(filename, cves):
-	archive = open(filename)
 	#files = { 'file': file }
 	#print "uploading file: " + filename
 	server = "http://{0}:{1}".format(hostname, port)
 	url = "{0}/service/v2/submit/archive/java/?cves={1}".format(server, cves)
 	print "url:" + url
-	response = requests.put(url,
-		data={
-			'archive' : archive
-		},
-		auth=(username, password))
-	print response
+	with open(filename, 'rb') as archive:
+		response = requests.put(url,
+			data=archive,
+			auth=(username, password))
+	#print response
 
 def uploadHash(filename):
 	fullHash = hash.doHash(filename)
@@ -44,6 +42,6 @@ def uploadHash(filename):
 #request.add_header("Authorization", "Basic %s" % base64string)
 #result = urllib2.urlopen(request)
 
-uploadArchive(filename, "CVE-2013-0000")
+uploadArchive(filename, "CVE-2013-0002")
 
 #uploadHash(filename)
