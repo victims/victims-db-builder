@@ -1,12 +1,14 @@
 import vulnerability
 import string
-import urllib2
+import requests
+from os import path
 
 #############################################################
 ## Download
 ############################################################
 # http://central.maven.org/maven2/org/springframework/spring-web/4.2.0.RELEASE/spring-web-4.2.0.RELEASE.jar
-indexBaseUrl = "http://central.maven.org/maven2/"
+indexBaseUrl = "http://central.maven.org:8080/maven2/"
+downloadDir = 'downloads/'
 
 def parseGroupId(groupId):
     return string.replace(groupId, '.', '/')
@@ -15,8 +17,10 @@ def parseVersionString(versionString):
     return string.replace(versionString, '/', '-')
 
 def buildUrl(groupId, versionString):
-    return '{0}{1}/{2}/{3}.jar'.format(indexBaseUrl, parseGroupId(groupId),
-        versionString, parseVersionString(versionString))
+    jarName = parseVersionString(versionString) + '.jar'
+    url = '%s%s/%s/%s' % (indexBaseUrl, parseGroupId(groupId),
+        versionString, jarName)
+    return (url, jarName)
 
 ##http://central.maven.org/maven2/org/springframework/spring-web/4.1.6.RELEASE/spring-web-4.1.6.RELEASE.jar
 ##############################################################
@@ -29,8 +33,11 @@ def download(yamlFile):
     listVers = jars.checkMvnVer()
     if listVers:
        	for v in listVers:
-            print 'vesion %s' % v
-            jarUrl = buildUrl(jars.groupId, v)
-            print "Downloading" + jarUrl
+            jarUrl, jarName = buildUrl(jars.groupId, v)
+            localPath = downloadDir + jarName
+            if not path.isfile(localPath):
+                print "Downloading: %s to %s." % (jarUrl, localPath)
+            else:
+                print "%s exists." % localPath
 
-download('2080.yaml')
+download('3192.yaml')
