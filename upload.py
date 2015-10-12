@@ -3,7 +3,6 @@ from hmac import HMAC
 from datetime import datetime
 from hashlib import md5, sha512
 
-filename="spring-web-4.2.0.RELEASE.jar"
 hostname="localhost"
 port=5000
 server = "http://{0}:{1}".format(hostname, port)
