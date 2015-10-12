@@ -19,12 +19,13 @@ class MavenDownloader:
         return string.replace(groupId, '.', '/')
 
     def parseVersionString(self, versionString):
-        return string.replace(versionString, '/', '-')
+        return '%s-%s' % (self.vulnerability.artifactId, versionString)
 
     def buildUrl(self, groupId, versionString):
         jarName = self.parseVersionString(versionString) + '.jar'
-        url = '%s%s/%s/%s' % (self.indexBaseUrl, self.parseGroupId(groupId),
-            versionString, jarName)
+        #http://central.maven.org/maven2/org/springframework/3.2.2.RELEASE/3.2.2.RELEASE.jar
+        url = '%s%s/%s/%s/%s' % (self.indexBaseUrl, self.parseGroupId(groupId),
+            self.vulnerability.artifactId, versionString, jarName)
         return (url, jarName)
 
     def dorequest(self, filename, url):
@@ -57,6 +58,7 @@ class MavenDownloader:
         listVers = self.vulnerability.checkMvnVer()
         if listVers:
        	    for v in listVers:
+                print 'version: %s' % v
                 newLocalPath = self.prepare_request(self.vulnerability.groupId, v)
                 if newLocalPath is not None:
                     newfiles.append((newLocalPath, v))
