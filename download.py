@@ -9,17 +9,19 @@ from os import path
 # http://central.maven.org/maven2/org/springframework/spring-web/4.2.0.RELEASE/spring-web-4.2.0.RELEASE.jar
 
 class MavenDownloader:
-    indexBaseUrl = "http://central.maven.org/maven2/"
+    dwnloadBaseUrl = "http://central.maven.org/maven2/"
     downloadDir = 'downloads/'
 
+    listVer = []
+
     def __init__(self, document):
-        self.vulnerability = Vulnerability(document)
+        self.libraries = Vulnerability(document).libraries
 
     def parseGroupId(self, groupId):
         return string.replace(groupId, '.', '/')
 
-    def parseVersionString(self, versionString):
-        return '%s-%s' % (self.vulnerability.artifactId, versionString)
+    def parseVersionString(self, versionString, library):
+        return '%s-%s' % (library.artifactId, versionString)
 
     def buildUrl(self, groupId, versionString):
         jarName = self.parseVersionString(versionString) + '.jar'
@@ -55,11 +57,17 @@ class MavenDownloader:
     ##############################################################
     def download(self):
         newfiles = []
-        listVers = self.vulnerability.checkMvnVer()
-        if listVers:
-       	    for v in listVers:
-                print 'version: %s' % v
-                newLocalPath = self.prepare_request(self.vulnerability.groupId, v)
-                if newLocalPath is not None:
-                    newfiles.append((newLocalPath, v))
+        for library in self.libraries:
+            listVers = self.checkMvnVer()
+            if listVers:
+       	        for v in listVers:
+                    print 'version: %s' % v
+                    newLocalPath = self.prepare_request(self.vulnerability.groupId, v)
+                    if newLocalPath is not None:
+                        newfiles.append((newLocalPath, v))
         return newfiles
+
+    ## Opens Maven file for product, and checks through the version range to see whether
+    ## it is listed as a release on the page
+    ## Checks page for ex.: "/artifact/org.springframework/spring-web/4.0.9.RELEASE"
+    ## Example range: <=3.2.13,3.2
