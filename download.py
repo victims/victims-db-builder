@@ -1,7 +1,7 @@
 from vulnerability import Vulnerability
 import string
 import requests
-from os import path
+import os
 
 #############################################################
 ## Download
@@ -9,25 +9,25 @@ from os import path
 # http://central.maven.org/maven2/org/springframework/spring-web/4.2.0.RELEASE/spring-web-4.2.0.RELEASE.jar
 
 class MavenDownloader:
-    dwnloadBaseUrl = "http://central.maven.org/maven2/"
+    downloadBaseUrl = "http://central.maven.org/maven2/"
     downloadDir = 'downloads/'
 
     listVer = []
 
-    def __init__(self, document):
-        self.libraries = Vulnerability(document).libraries
+    def __init__(self, libraries):
+        self.libraries = libraries
 
     def parseGroupId(self, groupId):
         return string.replace(groupId, '.', '/')
 
-    def parseVersionString(self, versionString, library):
+    def parseVersionString(self, library, versionString):
         return '%s-%s' % (library.artifactId, versionString)
 
-    def buildUrl(self, groupId, versionString):
-        jarName = self.parseVersionString(versionString) + '.jar'
+    def buildUrl(self, library, versionString):
+        jarName = self.parseVersionString(library, versionString) + '.jar'
         #http://central.maven.org/maven2/org/springframework/3.2.2.RELEASE/3.2.2.RELEASE.jar
-        url = '%s%s/%s/%s/%s' % (self.indexBaseUrl, self.parseGroupId(groupId),
-            self.vulnerability.artifactId, versionString, jarName)
+        url = '%s%s/%s/%s/%s' % (self.downloadBaseUrl, self.parseGroupId(library.groupId),
+            library.artifactId, versionString, jarName)
         return (url, jarName)
 
     def dorequest(self, filename, url):
@@ -39,11 +39,16 @@ class MavenDownloader:
             else:
                 for block in response.iter_content(1024):
                     handle.write(block)
+        handle.close()
+        if os.stat(filename) == 0:
+            os.remove(filename)
+            print "Cleaned up empty file: %s" % filename
 
-    def prepare_request(self, groupId, version):
-        jarUrl, jarName = self.buildUrl(groupId, version)
+
+    def prepare_request(self, library, version):
+        jarUrl, jarName = self.buildUrl(library, version)
         localPath = self.downloadDir + jarName
-        if not path.isfile(localPath):
+        if not os.path.isfile(localPath):
             print "Downloading: %s to %s." % (jarUrl, localPath)
             self.dorequest(localPath, jarUrl)
             return localPath
@@ -58,13 +63,15 @@ class MavenDownloader:
     def download(self):
         newfiles = []
         for library in self.libraries:
-            listVers = self.checkMvnVer()
-            if listVers:
-       	        for v in listVers:
-                    print 'version: %s' % v
-                    newLocalPath = self.prepare_request(self.vulnerability.groupId, v)
+            if library.versionRanges:
+               for version in library.mavenCentralVersions:
+                    print 'version: %s' % version
+                    newLocalPath = self.prepare_request(library, version)
                     if newLocalPath is not None:
-                        newfiles.append((newLocalPath, v))
+                        newfiles.append((newLocalPath, version,
+                            library.groupId, library.artifactId))
+            else:
+                print "No libraries found"
         return newfiles
 
     ## Opens Maven file for product, and checks through the version range to see whether

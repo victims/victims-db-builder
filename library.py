@@ -92,6 +92,7 @@ class JavaLibrary(Library):
 
     def confirmVersions(self):
         coords = self.indexBaseUrl + self.groupId + "/" + self.artifactId
+        print "coords %s" % coords
         try:
             response = urllib2.urlopen(coords)
         except urllib2.URLError, e:
@@ -108,7 +109,7 @@ class JavaLibrary(Library):
             listString = self.genVerString(r)
             print 'listString %s' % listString
 
-            #TODO this won't for for a version string with 4 parts,
+            #TODO this won't work for for a version string with 2, or 4 parts,
             #eg ['2.0.11.2'] in test/6504.yaml
             #split out values, for ['9.2.8', '9.2.0']
             valList= self.retlowHigh(listString[0])
@@ -146,22 +147,23 @@ class JavaLibrary(Library):
             ver += 0.1
 
     def addVer(self, ver, i, HTMLPage, coords):
-        tmpVers = str(ver) + "." + str(i) + "."
+        tmpVers = str(ver) + "." + str(i)
         tmpAnchor = self.anchor + tmpVers
         results = self.regex_search(tmpVers, HTMLPage)
         if len(results) > 0:
             for (fullVer) in results:
                 self.mavenCentralVersions.append(fullVer)
-       # else
-       #    print tmpAnchor + " not find on " + coords
+        else:
+           print tmpAnchor + " not find on " + coords
 
     def regex_search(self, tmpVers, target):
-        #print 'tmpVers: %s' % tmpVers
+        print 'tmpVers: %s' % tmpVers
         searchString = self.artifactId + '/' + tmpVers
         searchString = searchString.replace('.', '\\.')
-        searchString += '([^"/]+)'
-        #print 'search with regex: %s' % searchString
+        searchString += '([^"/]+)?'
+        print 'search with regex: %s' % searchString
         uniqueResults = set()
         for result in re.findall(searchString, target):
+            print 'result: %s' % result
             uniqueResults.add("%s%s" % (tmpVers, result))
         return uniqueResults

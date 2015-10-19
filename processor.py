@@ -1,4 +1,5 @@
 from download import MavenDownloader
+from vulnerability import Vulnerability
 import upload
 from os import walk, path
 
@@ -11,12 +12,12 @@ def findYamlFiles(baseDir):
                 processReport(yamlFile)
 
 def processReport(yamlFile):
-    downloader = MavenDownloader(yamlFile)
-    vuln = downloader.vulnerability
+    vuln = Vulnerability(yamlFile)
+    downloader = MavenDownloader(vuln.libraries)
     newFileList = downloader.download()
     print 'newFileList: %s' % newFileList
-    for (newFile, versionId) in newFileList:
-        upload.uploadArchive(newFile, vuln.groupId, vuln.artifactId,
-            versionId, vuln.cve)
+    for (newFile, version, groupId, artifactId) in newFileList:
+        upload.uploadArchive(newFile, groupId, artifactId,
+            version, vuln.cve)
 
 findYamlFiles("/Users/jasonshepherd/projects/victims/victims-cve-db/database/java")
