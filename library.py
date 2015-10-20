@@ -50,6 +50,9 @@ class Library(object):
                 AList = string.split(AListSplit[0], '.')
                 BListSplit = self.genVerString(b)
                 BList = string.split(BListSplit[0], '.')
+                if len(BList) != 3 or len(AList) != 3:
+                    #give up trying to fix version ranges
+                    return
                 AX = AList[0]; AY=AList[1]; AZ=AList[2]
                 BX = BList[0]; BY=BList[1]; BZ=BList[2]
 
@@ -109,8 +112,6 @@ class JavaLibrary(Library):
             listString = self.genVerString(r)
             print 'listString %s' % listString
 
-            #TODO this won't work for for a version string with 2, or 4 parts,
-            #eg ['2.0.11.2'] in test/6504.yaml
             #split out values, for ['9.2.8', '9.2.0']
             valList= self.retlowHigh(listString[0])
             firstY = float(valList[0])
@@ -120,7 +121,8 @@ class JavaLibrary(Library):
             secondZ = int(valList[1])
 
             if (r[0] == '>'):
-                self.sortedAddVer(HTMLPage, coords, firstY, self.maxRange, firstY, firstZ)
+                yMax = secondY + float('.' + str(self.maxRange))
+                self.sortedAddVer(HTMLPage, coords, yMax, secondZ, firstY, firstZ)
             elif (r[0] == '<'):
                 self.sortedAddVer(HTMLPage, coords, firstY, firstZ, secondY, secondZ)
             else:
@@ -129,7 +131,7 @@ class JavaLibrary(Library):
         return self.mavenCentralVersions
 
     def sortedAddVer(self, HTMLPage, coords, AY, AZ, BY, BZ):
-        #print 'AY:%.1f, AZ:%d, BY:%.1f, BZ:%d' % (AY,AZ,BY,BZ)
+        print 'AY:%.2f, AZ:%d, BY:%.1f, BZ:%d' % (AY,AZ,BY,BZ)
         ver = BY
         while ver >= BY and ver <= AY:
             if (ver == BY and ver == AY):

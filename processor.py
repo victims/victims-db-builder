@@ -20,4 +20,6 @@ def processReport(yamlFile):
         upload.uploadArchive(newFile, groupId, artifactId,
             version, vuln.cve)
 
+#todo setup command line interaction to accecpt folder or individual file
 findYamlFiles("/Users/jasonshepherd/projects/victims/victims-cve-db/database/java")
+#processReport("/Users/jasonshepherd/projects/victims/victims-cve-db/database/java/2015/3253.yaml")
