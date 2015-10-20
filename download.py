@@ -53,8 +53,8 @@ class MavenDownloader:
             self.dorequest(localPath, jarUrl)
             return localPath
         else:
-            print "%s exists." % localPath
-            return None
+            print "%s exists. Submitting anyway." % localPath
+            return localPath
 
     ##http://central.maven.org/maven2/org/springframework/spring-web/4.1.6.RELEASE/spring-web-4.1.6.RELEASE.jar
     ##############################################################
