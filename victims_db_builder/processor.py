@@ -4,9 +4,10 @@ import upload
 from os import walk, path
 from sys import argv
 import logging
+import logging.config
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logging.config.fileConfig('logging.cfg')
+logger = logging.getLogger('victimsDBBuilder')
 
 def main(argv):
     if len(argv) != 4:
