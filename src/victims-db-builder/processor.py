@@ -2,6 +2,7 @@ from download import MavenDownloader
 from vulnerability import Vulnerability
 import upload
 from os import walk, path
+from sys import argv
 
 def findYamlFiles(baseDir):
     for root, dirs, files in walk(baseDir):
@@ -20,6 +21,11 @@ def processReport(yamlFile):
         upload.uploadArchive(newFile, groupId, artifactId,
             version, vuln.cve)
 
-#todo setup command line interaction to accecpt folder or individual file
-findYamlFiles("/Users/jasonshepherd/projects/victims/victims-cve-db/database/java")
-#processReport("/Users/jasonshepherd/projects/victims/victims-cve-db/database/java/2015/3253.yaml")
+if len(argv) != 2:
+    print "Usage: python processor.py <dir>|<file.yaml>"
+else:
+    script, target = argv
+    if target.endswith('.yaml'):
+        processReport(target)
+    else:
+        findYamlFiles(target)
