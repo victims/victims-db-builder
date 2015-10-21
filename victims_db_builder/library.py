@@ -1,13 +1,12 @@
 import itertools
 import httplib, string
 import urllib2
-import re
 
-class Library(object):
+class BaseLibrary(object):
     def __init__(self, versionRanges):
         self.versionRanges = versionRanges
         self.fixVersionRange()
-        ## upper range of z maintenance release
+        #TODO push out to config
         self.maxRange = 99
 
     def splitRange(self, numRange):
@@ -83,26 +82,37 @@ class Library(object):
                                 tmpVerRanges.append(tmpVersion)
             self.versionRanges = tmpVerRanges
 
-class JavaLibrary(Library):
+import re
+import logging
+import ConfigParser
+class JavaLibrary(BaseLibrary):
     def __init__(self, versionRange, groupId, artifactId):
+        self.logger = logging.getLogger(__name__)
         super(JavaLibrary, self).__init__(versionRange)
         self.groupId = groupId
         self.artifactId = artifactId
-        self.indexBaseUrl = "http://mvnrepository.com/artifact/"
-        self.anchor = "/artifact/" + self.groupId + "/" + self.artifactId + "/"
+        self.configure()
         self.mavenCentralVersions = list()
         self.confirmVersions()
 
+    def configure(self):
+        config = ConfigParser.ConfigParser()
+        config.read('victims-db-builder.cfg')
+        self.indexBaseUrl = config.get('java', 'index')
+        self.anchor = config.get('java', 'anchor', 1,
+            {'groupId': self.groupId, 'artifactId' : self.artifactId})
+
     def confirmVersions(self):
         coords = self.indexBaseUrl + self.groupId + "/" + self.artifactId
-        print "coords %s" % coords
+        self.logger.debug("coords %s", coords)
         try:
             response = urllib2.urlopen(coords)
         except urllib2.URLError, e:
             if not hasattr(e, "code"):
                 raise
             response = e
-            print "Error with MavenPage:", response.code, response.msg
+            self.logger.error("Response code:%s, Error with MavenPage: %s", response.code,
+                response.msg)
             return []
 
         #TODO cache page locally for redundency
@@ -110,7 +120,7 @@ class JavaLibrary(Library):
 
         for r in self.versionRanges:
             listString = self.genVerString(r)
-            print 'listString %s' % listString
+            self.logger.debug('listString %s', listString)
 
             #split out values, for ['9.2.8', '9.2.0']
             valList= self.retlowHigh(listString[0])
@@ -131,7 +141,7 @@ class JavaLibrary(Library):
         return self.mavenCentralVersions
 
     def sortedAddVer(self, HTMLPage, coords, AY, AZ, BY, BZ):
-        print 'AY:%.2f, AZ:%d, BY:%.1f, BZ:%d' % (AY,AZ,BY,BZ)
+        self.logger.debug('AY:%.2f, AZ:%d, BY:%.1f, BZ:%d', AY, AZ, BY, BZ)
         ver = BY
         while ver >= BY and ver <= AY:
             if (ver == BY and ver == AY):
@@ -156,16 +166,16 @@ class JavaLibrary(Library):
             for (fullVer) in results:
                 self.mavenCentralVersions.append(fullVer)
         else:
-           print tmpAnchor + " not find on " + coords
+           self.logger.debug(tmpAnchor + " not find on " + coords)
 
     def regex_search(self, tmpVers, target):
-        print 'tmpVers: %s' % tmpVers
+        self.logger.debug('tmpVers: %s', tmpVers)
         searchString = self.artifactId + '/' + tmpVers
         searchString = searchString.replace('.', '\\.')
         searchString += '([^"/]+)?'
-        print 'search with regex: %s' % searchString
+        self.logger.debug('search with regex: %s', searchString)
         uniqueResults = set()
         for result in re.findall(searchString, target):
-            print 'result: %s' % result
+            self.logger.debug('result: %s', result)
             uniqueResults.add("%s%s" % (tmpVers, result))
         return uniqueResults

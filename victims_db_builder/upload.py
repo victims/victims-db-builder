@@ -1,17 +1,21 @@
 import requests
 from hmac import HMAC
 from datetime import datetime
-from hashlib import md5, sha512
+#from hashlib import md5, sha512
+import logging
+import ConfigParser
 
-hostname="localhost"
-port=5000
-server = "http://{0}:{1}".format(hostname, port)
-username="jshepher"
-password="Welcome1!"
+config = ConfigParser.SafeConfigParser()
+config.read('victims-db-builder.cfg')
+hostname = config.get('victims_api', 'hostname')
+port = config.get('victims_api', 'port')
+protocol = config.get('victims_api', 'protocol')
+server = "{0}://{1}:{2}".format(protocol, hostname, port)
 
 
-def uploadArchive(filename, gid, aid, vid, cves):
-    print "uploading file: " + filename
+
+def uploadArchive(username, password, filename, gid, aid, vid, cves):
+    logger.info("uploading file: " + filename)
     server = "http://%s:%s" % (hostname, port)
     path = "/service/v2/submit/archive/java/?version=%s\&groupId=%s\&artifactId=%s\&cves=%s" % (
         vid, gid, aid, ','.join(cves))
@@ -28,5 +32,6 @@ def uploadArchive(filename, gid, aid, vid, cves):
             files=files,
             auth = (username, password)
             )
-    print response.text
+    logger.info(response.text)
 
+logger = logging.getLogger(__name__)
