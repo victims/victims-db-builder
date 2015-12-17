@@ -16,7 +16,7 @@ server = "{0}://{1}:{2}".format(protocol, hostname, port)
 
 def uploadArchive(username, password, filename, gid, aid, vid, cves):
     logger.info("uploading file: " + filename)
-    server = "http://%s:%s" % (hostname, port)
+    server = "%s://%s:%s" % (protocol, hostname, port)
     path = "/service/v2/submit/archive/java/?version=%s\&groupId=%s\&artifactId=%s\&cves=%s" % (
         vid, gid, aid, ','.join(cves))
     url = server + path
