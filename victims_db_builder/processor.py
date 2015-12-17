@@ -1,5 +1,5 @@
 from download import MavenDownloader
-from vulnerability import Vulnerability
+import vulnerability
 import upload
 from os import walk, path
 from sys import argv
@@ -30,7 +30,7 @@ def findYamlFiles(baseDir, username, password):
                 processReport(yamlFile, username, password)
 
 def processReport(yamlFile, username, password):
-    vuln = Vulnerability(yamlFile)
+    vuln = vulnerability.construct_yaml(yamlFile)
     downloader = MavenDownloader(vuln.libraries)
     newFileList = downloader.download()
     logger.info('newFileList: %s' % newFileList)
