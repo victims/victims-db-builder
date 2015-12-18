@@ -3,6 +3,7 @@ from hmac import HMAC
 from datetime import datetime
 #from hashlib import md5, sha512
 import logging
+import logging.config
 import ConfigParser
 
 config = ConfigParser.SafeConfigParser()
@@ -12,7 +13,8 @@ port = config.get('victims_api', 'port')
 protocol = config.get('victims_api', 'protocol')
 server = "{0}://{1}:{2}".format(protocol, hostname, port)
 
-
+logging.config.fileConfig('logging.cfg')
+logger = logging.getLogger('victimsDBBuilder')
 
 def uploadArchive(username, password, filename, gid, aid, vid, cves):
     logger.info("uploading file: " + filename)
@@ -30,8 +32,7 @@ def uploadArchive(username, password, filename, gid, aid, vid, cves):
             #	secret, 'PUT', path, date, md5sums)),
             #	"Date": date},
             files=files,
-            auth = (username, password)
+            auth = (username, password),
+	    verify='gd_bundle-g2.crt'
             )
-    logger.info(response.text)
-
-logger = logging.getLogger(__name__)
+    	logger.info(response.text)
