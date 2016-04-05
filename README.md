@@ -11,7 +11,7 @@ This is a short guide on how to work with this codebase
 * virtualenv
 * pip
 
-#### Setup the deveopment environment
+#### Setup the development environment
 
 Create a virtualenv using:
 ```sh
@@ -28,7 +28,7 @@ Installing setuptools, pip, wheel...done.
 
 Activate the previously created environment using:
 ```sh
-source dbbuild/bin/activate
+source dbuild/bin/activate
 ```
 Once this is complete, you should see the name prepended to the command prompt eg: '(dbbuild)'
 
