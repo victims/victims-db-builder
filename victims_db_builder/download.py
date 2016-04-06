@@ -4,11 +4,11 @@ import requests
 import os
 import logging
 import ConfigParser
+import charon
 
 #############################################################
 ## Download
 ############################################################
-# http://central.maven.org/maven2/org/springframework/spring-web/4.2.0.RELEASE/spring-web-4.2.0.RELEASE.jar
 
 class MavenDownloader:
     def __init__(self, libraries):
@@ -16,42 +16,19 @@ class MavenDownloader:
         self.libraries = libraries
         config = ConfigParser.SafeConfigParser()
         config.read('victims-db-builder.cfg')
-        self.downloadBaseUrl = config.get('java', 'download_base_url')
         self.downloadDir = config.get('java', 'download_dir')
-
-    def parseGroupId(self, groupId):
-        return string.replace(groupId, '.', '/')
 
     def parseVersionString(self, library, versionString):
         return '%s-%s' % (library.artifactId, versionString)
 
-    def buildUrl(self, library, versionString):
-        jarName = self.parseVersionString(library, versionString) + '.jar'
-        url = '%s%s/%s/%s/%s' % (self.downloadBaseUrl, self.parseGroupId(library.groupId),
-            library.artifactId, versionString, jarName)
-        return (url, jarName)
-
-    def dorequest(self, filename, url):
-        with open(filename, 'wb') as handle:
-            response = requests.get(url, stream="True")
-            if not response.ok:
-                self.logger.warning("Request to download %s failed. %s: %s",
-                    url, response.status_code, response.text)
-            else:
-                for block in response.iter_content(1024):
-                    handle.write(block)
-        handle.close()
-        if os.stat(filename) == 0:
-            os.remove(filename)
-            self.logger.debug("Cleaned up empty file: %s", filename)
-
 
     def prepare_request(self, library, version):
-        jarUrl, jarName = self.buildUrl(library, version)
+        jarName = self.parseVersionString(library, version) + '.jar'
         localPath = self.downloadDir + jarName
         if not os.path.isfile(localPath):
-            self.logger.info("Downloading: %s to %s.", jarUrl, localPath)
-            self.dorequest(localPath, jarUrl)
+            self.logger.info("Downloading: %s to %s.", jarName, localPath)
+            info = {'groupId': library.groupId, 'artifactId':library.artifactId, 'version':version}
+            charon.download('java', info)
             return localPath
         else:
             self.logger.warning("%s exists. Submitting anyway.", localPath)

@@ -34,9 +34,9 @@ def processReport(yamlFile, username, password):
     downloader = MavenDownloader(vuln.libraries)
     newFileList = downloader.download()
     logger.info('newFileList: %s' % newFileList)
-    for (newFile, version, groupId, artifactId) in newFileList:
-        upload.uploadArchive(username, password, newFile, groupId, artifactId,
-            version, vuln.cve)
+    #for (newFile, version, groupId, artifactId) in newFileList:
+        #upload.uploadArchive(username, password, newFile, groupId, artifactId,
+            #version, vuln.cve)
 
 if __name__ == '__main__':
     main(argv)
