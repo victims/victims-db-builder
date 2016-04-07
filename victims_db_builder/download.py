@@ -37,6 +37,7 @@ class MavenDownloader:
     def download(self):
         newfiles = []
         for library in self.libraries:
+            self.logger.debug("found library %s" % library)
             if library.versionRanges:
                for version in library.mavenCentralVersions:
                     self.logger.debug('version: %s', version)

@@ -1,0 +1,15 @@
+cve: 2015-7501
+title: "apache-commons-collections: InvokerTransformer code execution during deserialisation"
+description: >
+    It was found that the Apache commons-collections library permitted code execution when deserializing objects involving a specially constructed chain of classes. A remote attacker could use this flaw to execute arbitrary code with the permissions of the application using the commons-collections library.
+cvss_v2: 7.5
+references:
+    - https://access.redhat.com/security/cve/cve-2015-7501
+
+affected:
+    - groupId: "commons-collections"
+      artifactId: "commons-collections"
+      version:
+        - "==3.2.1-redhat-1"
+      fixedin:
+        - ">=3.2.1-redhat-5"

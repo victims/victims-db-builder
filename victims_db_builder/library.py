@@ -4,6 +4,7 @@ import urllib2
 
 class BaseLibrary(object):
     def __init__(self, versionRanges):
+        self.logger = logging.getLogger(__name__)
         self.versionRanges = versionRanges
         self.fixVersionRange()
         #TODO push out to config
@@ -43,51 +44,56 @@ class BaseLibrary(object):
     # Remove duplicates and merge ranges in the version listing
     def fixVersionRange(self):
         tmpVerRanges = []
-        if (len(self.versionRanges) > 1):
-            for a, b in itertools.combinations(self.versionRanges,2):
-                AListSplit = self.genVerString(a)
-                AList = string.split(AListSplit[0], '.')
-                BListSplit = self.genVerString(b)
-                BList = string.split(BListSplit[0], '.')
-                if len(BList) != 3 or len(AList) != 3:
-                    #give up trying to fix version ranges
-                    return
-                AX = AList[0]; AY=AList[1]; AZ=AList[2]
-                BX = BList[0]; BY=BList[1]; BZ=BList[2]
+        self.logger.debug("In fix version ranges")
+        try:
+            if (len(self.versionRanges) > 1):
+                for a, b in itertools.combinations(self.versionRanges,2):
+                    self.logger.debug("a:%s, b:%s" % a, b)
+                    AListSplit = self.genVerString(a)
+                    AList = string.split(AListSplit[0], '.')
+                    BListSplit = self.genVerString(b)
+                    BList = string.split(BListSplit[0], '.')
+                    if len(BList) != 3 or len(AList) != 3:
+                        #give up trying to fix version ranges
+                        self.logger.debug("version range didn't have 3 secions")
+                        return
+                    AX = AList[0]; AY=AList[1]; AZ=AList[2]
+                    BX = BList[0]; BY=BList[1]; BZ=BList[2]
 
-                if ((AX != BX) or (AY != BY)):
-                    if(not a in tmpVerRanges): tmpVerRanges.append(a)
-                    if(not b in tmpVerRanges): tmpVerRanges.append(b)
-                else:
-                    if(a[0] == b[0]):
-                        # if the same symbol for the same X.Y version,
-                        # assume last entry is correct
-                        # switch out old for new version
+                    if ((AX != BX) or (AY != BY)):
+                        if(not a in tmpVerRanges): tmpVerRanges.append(a)
                         if(not b in tmpVerRanges): tmpVerRanges.append(b)
                     else:
-                        # symbols are different, need to combine two versions
-                        if(a[0] == '<' and  b[0] == '>'):
-                            if(AZ < BZ):
-                                if(not a in tmpVerRanges): tmpVerRanges.append(a)
-                                if(not b in tmpVerRanges): tmpVerRanges.append(b)
-                            else:
-                                tmpVersion = '<=' + str(AListSplit[0]) + ',' + BListSplit[0]
-                                tmpVerRanges.append(tmpVersion)
+                        if(a[0] == b[0]):
+                            # if the same symbol for the same X.Y version,
+                            # assume last entry is correct
+                            # switch out old for new version
+                            if(not b in tmpVerRanges): tmpVerRanges.append(b)
                         else:
-                            if(AZ > BZ):
-                                if(not a in tmpVerRanges): tmpVerRanges.append(a)
-                                if(not b in tmpVerRanges): tmpVerRanges.append(b)
+                            # symbols are different, need to combine two versions
+                            if(a[0] == '<' and  b[0] == '>'):
+                                if(AZ < BZ):
+                                    if(not a in tmpVerRanges): tmpVerRanges.append(a)
+                                    if(not b in tmpVerRanges): tmpVerRanges.append(b)
+                                else:
+                                    tmpVersion = '<=' + str(AListSplit[0]) + ',' + BListSplit[0]
+                                    tmpVerRanges.append(tmpVersion)
                             else:
-                                tmpVersion = '<=' + str(BListSplit[0]) + ',' + AListSplit[0]
-                                tmpVerRanges.append(tmpVersion)
-            self.versionRanges = tmpVerRanges
-
+                                if(AZ > BZ):
+                                    if(not a in tmpVerRanges): tmpVerRanges.append(a)
+                                    if(not b in tmpVerRanges): tmpVerRanges.append(b)
+                                else:
+                                    tmpVersion = '<=' + str(BListSplit[0]) + ',' + AListSplit[0]
+                                    tmpVerRanges.append(tmpVersion)
+            if (len(tmpVerRanges) > 0):
+                self.versionRanges = tmpVerRanges
+        except ValueError:
+            print "Got ValueError in fixVersionRange"
 import re
 import logging
 import ConfigParser
 class JavaLibrary(BaseLibrary):
     def __init__(self, versionRange, groupId, artifactId):
-        self.logger = logging.getLogger(__name__)
         super(JavaLibrary, self).__init__(versionRange)
         self.groupId = groupId
         self.artifactId = artifactId
@@ -118,14 +124,23 @@ class JavaLibrary(BaseLibrary):
         #TODO cache page locally for redundency
         HTMLPage = response.read()
 
+        self.logger.debug("version ranges: %s" % self.versionRanges)
+
         for r in self.versionRanges:
+            self.logger.debug("found version range: %s" % r)
             listString = self.genVerString(r)
             self.logger.debug('listString %s', listString)
 
             #split out values, for ['9.2.8', '9.2.0']
             valList= self.retlowHigh(listString[0])
             firstY = float(valList[0])
-            firstZ = int(valList[1])
+            #check if can cast to int
+            start = valList[1]
+            try:
+                firstZ = int(start)
+            #if not remove to first '-' and add as suffix.
+            except ValueError:
+                firstZ = int(start[:start.find('-')])
             valList= self.retlowHigh(listString[1])
             secondY = float(valList[0])
             secondZ = int(valList[1])
