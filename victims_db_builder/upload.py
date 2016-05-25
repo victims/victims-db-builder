@@ -45,6 +45,7 @@ def submit(username, password, gid, aid, vid, cves):
         auth = (username, password),
         verify='gd_bundle-g2.crt'
     )
+    logger.info(response.text)
 
 def getPath(gid, aid, vid, cves):
     if not isinstance(cves, basestring):
