@@ -14,7 +14,7 @@ config = {
     'license': 'AGPL',
     'packages': ['victims_db_builder'],
     'scripts': ['victims_db_builder/processor.py'],
-    'install_requires': ['requests>=2.8.1', 'pyyaml>=3.11'],
+    'install_requires': ['requests>=2.8.1', 'pyyaml>=3.11', 'beautifulsoup4>=4.4.1'],
     'tests_require': ['nose>=1.3.7']
 }
 

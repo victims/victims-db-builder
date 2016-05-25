@@ -10,17 +10,19 @@ def test_multi_libraries():
         version = affectedLibrary['version']
         artifactId = affectedLibrary['artifactId']
         groupId = affectedLibrary['groupId']
-        try:
-            lib = JavaLibrary(version, groupId, artifactId)
-        except ValueError, e:
-            print 'adding library %s/%s/%s' % (groupId, artifactId, version)
-        else:
-            loaded_libraries.append(lib)
-    assert len(loaded_libraries) == 3
+        lib = JavaLibrary(version, groupId, artifactId)
+        assert len(lib.versions) >= 1
+        loaded_libraries.append(lib)
+    assert len(loaded_libraries) == 4
 
-def test_fix_version():
-    lib = BaseLibrary(['>=9.2.3,9.2', '<=9.2.8,9.2'])
-    assert lib.versionRanges == ['<=9.2.8,9.2.3']
+def test_down_series_3():
+    lib = JavaLibrary(['<=9.2.8,9.2'], "org.eclipse.jetty","jetty-http")
+    assert checkEquals(lib.mavenVersions, ["9.2.0.M0", "9.2.0.M1", "9.2.0.RC0", "9.2.0.v20140526","9.2.1.v20140609"])
+
+def test_up_series_3():
+    lib = JavaLibrary(['>=9.2.3,9.2'], "org.eclipse.jetty","jetty-http")
+    assert checkEquals(lib.mavenVersions, ["9.2.3.v20140905","9.2.4.v20141103",
+        "9.2.5.v20141112", "9.2.6.v20141205", "9.2.7.v20150116", "9.2.8.v20150217", "9.2.9.v20150224"])
 
 def test_fix_version_y_only():
     lib = BaseLibrary([">=0.5,0"])
@@ -44,25 +46,6 @@ def test_regex_with_appendix():
     #self.assertIsNotNone(appendix)
     assert '4.2.0.RELEASE' == ref
 
-def test_regex():
-    lib = JavaLibrary(['>=9.2.3,9.2', '<=9.2.8,9.2'], "org.eclipse.jetty",
-        "jetty-http")
-    searchString = '''
-<td><a href="jetty-http/9.2.0.v20140526" class="vbtn release">9.2.0.v20140526
-</a></td><td><div><a href="jetty-http/9.2.0.v20140526/usages">6</a>
-<span class="rb" style="width:7px;"></span></div></td><td>release</td><td>
-(May, 2014)</td></tr><tr><td><a href="jetty-http/9.2.0.M1"
-class="vbtn milestone">9.2.0.M1</a></td><td><div><a href="jetty-http/9.2.0.M1/
-usages">6</a><span class="rb" style="width:7px;"></span></div></td>
-<td>milestone</td><td> (May, 2014)</td></tr><tr><td>
-<a href="jetty-http/9.2.0.M0" class="vbtn milestone">9.2.0.M0</a></td>
-<td><div><a href="jetty-http/9.2.0.M0/usages">6</a>
-<span class="rb" style="width:7px;"></span></div></td>'''
-    matchResult = lib.regex_search('9.2.0', searchString)
-    assert '9.2.0.v20140526' in matchResult
-    assert '9.2.0.M1' in matchResult
-    assert '9.2.0.M0' in matchResult
-
 def test_generate_down_from_x():
     lib = JavaLibrary([">=1.7.0,1"], "org.codehaus.groovy", "groovy-all")
     assert len(lib.mavenCentralVersions) == 36
@@ -75,3 +58,7 @@ def test_generate_up_from_x():
 def test_retLowHigh():
     lib = BaseLibrary([])
     assert lib.retlowHigh("1.0.0") ==  ['1.0', '0']
+
+def checkEquals(S1,S2):
+    print sorted(S1)
+    return len(S1) == len(S2) and sorted(S1) == sorted(S2)
