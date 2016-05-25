@@ -31,12 +31,13 @@ def findYamlFiles(baseDir, username, password):
 
 def processReport(yamlFile, username, password):
     vuln = vulnerability.construct_yaml(yamlFile)
-    downloader = MavenDownloader(vuln.libraries)
-    newFileList = downloader.download()
-    logger.info('newFileList: %s' % newFileList)
-    for (newFile, version, groupId, artifactId) in newFileList:
-        upload.uploadArchive(username, password, newFile, groupId, artifactId,
-            version, vuln.cve)
+    for library in vuln.libraries:
+        groupId = library.groupId
+        artifactId = library.artifactId
+        for version in library.mavenCentralVersions:
+            print "version %s" % version
+            upload.submit(username, password, groupId, artifactId,
+                version, vuln.cve)
 
 if __name__ == '__main__':
     main(argv)
