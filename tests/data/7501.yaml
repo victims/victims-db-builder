@@ -1,0 +1,13 @@
+---
+cve: 2015-7501
+title: "It was found that the Apache commons-collections library permitted code execution when deserializing objects involving a specially constructed chain of classes. A remote attacker could use this flaw to execute arbitrary code with the permissions of the application using the commons-collections library."
+references:
+    - https://access.redhat.com/security/cve/CVE-2015-7501
+affected:
+    - groupId: "commons-collections"
+      artifactId: "commons-collections"
+      version:
+        - "<=3.2.1.redhat-3"
+      fixedin:
+        - ">=3.2.1.redhat-5"
+

@@ -34,7 +34,7 @@ def processReport(yamlFile, username, password):
     for library in vuln.libraries:
         groupId = library.groupId
         artifactId = library.artifactId
-        for version in library.mavenCentralVersions:
+        for version in library.mavenVersions:
             print "version %s" % version
             upload.submit(username, password, groupId, artifactId,
                 version, vuln.cve)
