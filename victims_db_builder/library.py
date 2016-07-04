@@ -32,6 +32,7 @@ class JavaLibrary(BaseLibrary):
         self.indexBaseUrl = config.get('java', 'index')
 
     def confirmVersions(self):
+        #TODO for each index page in indexBaseUrl list
         coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + self.artifactId
         self.logger.debug("coords %s", coords)
         try:
