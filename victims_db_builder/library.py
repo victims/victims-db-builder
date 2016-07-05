@@ -48,21 +48,49 @@ class JavaLibrary(BaseLibrary):
         self.findInMaven(response)
 
     def findInMaven(self, response):
-            #TODO cache page locally for redundency
-            mavenPage = response.read()
 
-            soup = BeautifulSoup(mavenPage, 'html.parser')
+        def getVersionRegex(target):
+            return re.compile('^' + target.replace('.', '\.'))
 
-            for version in self.versions:
-                self.logger.debug('version.base: %s' % version.base)
-                versionRegex = re.compile(version.base.replace('.', '\.'))
-                anchor = soup.find(href=versionRegex)
-                if anchor:
-                    self.logger.debug("adding %s to versions" % anchor.get_text().rstrip('/'))
-                    self.mavenVersions.add(anchor.get_text().rstrip('/'))
-                    self.findAllInSeries(anchor)
-                else:
-                    self.logger.warn('Didnt find %s' % version.base)
+        def findByRegex(target, soup):
+            self.logger.debug('target: %s' % target)
+            targetRegex = getVersionRegex(target)
+            self.logger.debug('using regex %s' % targetRegex.pattern)
+            link = soup.find('a', text=targetRegex)
+            if link:
+                self.logger.debug('found link: %s' % link)
+                return link
+            else:
+                self.logger.warn('target \'%s\' not found' % target)
+
+        def findByRegexReverse(target, soup):
+            self.logger.debug('target reverse: %s' % target)
+            targetRegex = getVersionRegex(target)
+            self.logger.debug('using regex %s' % targetRegex.pattern)
+            links = soup.find_all('a', text=targetRegex)
+            if links is None or len(links) == 0:
+                self.logger.warn('target \'%s\' not found' % target)
+            else:
+                #The last anchor found
+                return links.pop()
+
+
+        #TODO cache page locally for redundency
+        mavenPage = response.read()
+        soup = BeautifulSoup(mavenPage, 'html.parser')
+        links = soup.find_all('a')
+
+        for version in self.versions:
+            if version.condition == '<=':
+                self.logger.debug('condition was <=')
+                startLinkIndex = links.index(findByRegex(version.series, soup))
+                endLinkIndex = links.index(findByRegexReverse(version.base, soup))
+                affectedLinks = links[startLinkIndex:endLinkIndex]
+                self.logger.debug('%s affected links found' % len(affectedLinks))
+                for affectedLink in affectedLinks:
+                    self.mavenVersions.add(affectedLink.get_text().rstrip('/'))
+            else:
+                self.logger.warn('%s condition was not matched' % version.condition)
 
     #anchorRegex = re.compile(('?:[\d.]*(?=\.))(?P<postfix>.*)?')
     def findAllInSeries(self, baseAnchor):

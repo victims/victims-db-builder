@@ -19,8 +19,8 @@ def test_down_series_3():
     lib = JavaLibrary(['<=9.2.8,9.2'], "org.eclipse.jetty","jetty-http")
     assert checkEquals(lib.mavenVersions, ["9.2.0.M0", "9.2.0.M1", "9.2.0.RC0",
         "9.2.0.v20140526","9.2.1.v20140609", "9.2.2.v20140723", "9.2.2.v20140723",
-        "9.2.3.v20140905","9.2.4.v20141103","9.2.5.v20141112/","9.2.6.v20141205",
-        "9.2.7.v20150116")
+        "9.2.3.v20140905","9.2.4.v20141103","9.2.5.v20141112","9.2.6.v20141205",
+        "9.2.7.v20150116"])
 
 def test_up_series_3():
     lib = JavaLibrary(['>=9.2.3,9.2'], "org.eclipse.jetty","jetty-http")
