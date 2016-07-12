@@ -13,14 +13,17 @@ port = config.get('victims_api', 'port')
 protocol = config.get('victims_api', 'protocol')
 server = "{0}://{1}:{2}".format(protocol, hostname, port)
 
+
 logging.config.fileConfig('logging.cfg')
 logger = logging.getLogger('victimsDBBuilder')
 
+
 def uploadArchive(username, password, filename, gid, aid, vid, cves):
-    logger.info("uploading file: " + filename)
-    server = "%s://%s:%s" % (protocol, hostname, port)
+    logger.info("uploading file: %s" % filename)
+    if not isinstance(cves, basestring):
+        cves = ','.join(cves)
     path = "/service/v2/submit/archive/java/?version=%s\&groupId=%s\&artifactId=%s\&cves=%s" % (
-        vid, gid, aid, ','.join(cves))
+        vid, gid, aid, cves)
     url = server + path
     #date = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     with open(filename, 'rb') as archive:
@@ -36,3 +39,4 @@ def uploadArchive(username, password, filename, gid, aid, vid, cves):
 	    verify='gd_bundle-g2.crt'
             )
     	logger.info(response.text)
+
