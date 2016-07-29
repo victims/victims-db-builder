@@ -85,7 +85,7 @@ class JavaLibrary(BaseLibrary):
                 self.logger.debug('condition was <=')
                 startLinkIndex = links.index(findByRegex(version.series, soup))
                 endLinkIndex = links.index(findByRegexReverse(version.base, soup))
-                affectedLinks = links[startLinkIndex:endLinkIndex]
+                affectedLinks = links[startLinkIndex:endLinkIndex + 1]
                 self.logger.debug('%s affected links found' % len(affectedLinks))
                 for affectedLink in affectedLinks:
                     self.mavenVersions.add(affectedLink.get_text().rstrip('/'))
