@@ -16,6 +16,7 @@ class BaseLibrary(object):
 import logging
 import ConfigParser
 from bs4 import BeautifulSoup
+from os import environ
 class JavaLibrary(BaseLibrary):
     def __init__(self, versionRange, groupId, artifactId):
         self.logger = logging.getLogger(__name__)
@@ -27,9 +28,13 @@ class JavaLibrary(BaseLibrary):
         self.confirmVersions()
 
     def configure(self):
-        config = ConfigParser.ConfigParser()
-        config.read('victims-db-builder.cfg')
-        self.indexBaseUrl = config.get('java', 'index')
+        try:
+            self.indexBaseUrl = environ['VICTIMS_MAVEN_INDEX']
+        except KeyError:
+            self.logger.debug("Failed to get Maven Index from environment")
+            config = ConfigParser.ConfigParser()
+            config.read('victims-db-builder.cfg')
+            self.indexBaseUrl = config.get('java', 'index')
 
     def confirmVersions(self):
         #TODO for each index page in indexBaseUrl list
