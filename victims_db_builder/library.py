@@ -110,6 +110,7 @@ class JavaLibrary(BaseLibrary):
         config = ConfigParser.ConfigParser()
         config.read('victims-db-builder.cfg')
         repos = config.items('java_repos')
+        print "repos: %s" % repos
         for repo, url in repos:
             self.logger.debug('repo: %s' % repo)
             if repo == 'central':
@@ -118,6 +119,8 @@ class JavaLibrary(BaseLibrary):
                 self.anchor = config.get('java', 'anchor', 1,
                     {'groupId': self.groupId, 'artifactId' : self.artifactId})
                 self.confirmCentralVersions()
+                self.indexBaseUrl = config.get('java', 'download_base_url')
+                self.confirmVersions()
             elif repo == 'redhat':
                 self.indexBaseUrl = url
                 self.confirmVersions()
@@ -203,7 +206,6 @@ class JavaLibrary(BaseLibrary):
         return uniqueResults
 
     def confirmVersions(self):
-        #TODO for each index page in indexBaseUrl list
         coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + self.artifactId
         self.logger.debug("coords %s", coords)
         try:
