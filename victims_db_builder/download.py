@@ -8,7 +8,6 @@ import ConfigParser
 #############################################################
 ## Download
 ############################################################
-# http://central.maven.org/maven2/org/springframework/spring-web/4.2.0.RELEASE/spring-web-4.2.0.RELEASE.jar
 
 class MavenDownloader:
     def __init__(self, libraries):
@@ -16,7 +15,8 @@ class MavenDownloader:
         self.libraries = libraries
         config = ConfigParser.SafeConfigParser()
         config.read('victims-db-builder.cfg')
-        self.downloadBaseUrl = config.get('java', 'download_base_url')
+        #TODO change to index url
+        self.downloadBaseUrl = config.get('java', 'index')
         self.downloadDir = config.get('java', 'download_dir')
 
     def parseGroupId(self, groupId):

@@ -1,9 +1,20 @@
 import itertools
 import httplib, string
 import urllib2
+import re
+from version import Version
 
 class BaseLibrary(object):
     def __init__(self, versionRanges):
+        #For soup/direct maven index:
+        self.versions = []
+        if not isinstance(versionRanges, basestring):
+            for vr in versionRanges:
+                self.versions.append(Version(vr))
+        else:
+            self.versions.append(Version(versionRanges))
+
+        #for Maven central
         self.versionRanges = versionRanges
         self.fixVersionRange()
         #TODO push out to config
@@ -81,28 +92,40 @@ class BaseLibrary(object):
                                 tmpVersion = '<=' + str(BListSplit[0]) + ',' + AListSplit[0]
                                 tmpVerRanges.append(tmpVersion)
             self.versionRanges = tmpVerRanges
-
 import re
 import logging
 import ConfigParser
+from bs4 import BeautifulSoup
+from os import environ
 class JavaLibrary(BaseLibrary):
     def __init__(self, versionRange, groupId, artifactId):
         self.logger = logging.getLogger(__name__)
         super(JavaLibrary, self).__init__(versionRange)
         self.groupId = groupId
         self.artifactId = artifactId
+        self.mavenVersions = set()
         self.configure()
-        self.mavenCentralVersions = list()
-        self.confirmVersions()
 
     def configure(self):
         config = ConfigParser.ConfigParser()
         config.read('victims-db-builder.cfg')
-        self.indexBaseUrl = config.get('java', 'index')
-        self.anchor = config.get('java', 'anchor', 1,
-            {'groupId': self.groupId, 'artifactId' : self.artifactId})
+        repos = config.items('java_repos')
+        print "repos: %s" % repos
+        for repo, url in repos:
+            self.logger.debug('repo: %s' % repo)
+            if repo == 'central':
+                self.logger.debug('setting index to %s' % url)
+                self.indexBaseUrl = url
+                self.anchor = config.get('java', 'anchor', 1,
+                    {'groupId': self.groupId, 'artifactId' : self.artifactId})
+                self.confirmCentralVersions()
+                self.indexBaseUrl = config.get('java', 'download_base_url')
+                self.confirmVersions()
+            elif repo == 'redhat':
+                self.indexBaseUrl = url
+                self.confirmVersions()
 
-    def confirmVersions(self):
+    def confirmCentralVersions(self):
         coords = self.indexBaseUrl + self.groupId + "/" + self.artifactId
         self.logger.debug("coords %s", coords)
         try:
@@ -122,23 +145,25 @@ class JavaLibrary(BaseLibrary):
             listString = self.genVerString(r)
             self.logger.debug('listString %s', listString)
 
-            #split out values, for ['9.2.8', '9.2.0']
-            valList= self.retlowHigh(listString[0])
-            firstY = float(valList[0])
-            firstZ = int(valList[1])
-            valList= self.retlowHigh(listString[1])
-            secondY = float(valList[0])
-            secondZ = int(valList[1])
+            try:
+                #split out values, for ['9.2.8', '9.2.0']
+                valList= self.retlowHigh(listString[0])
+                firstY = float(valList[0])
+                firstZ = int(valList[1])
+                valList= self.retlowHigh(listString[1])
+                secondY = float(valList[0])
+                secondZ = int(valList[1])
 
-            if (r[0] == '>'):
-                yMax = secondY + float('.' + str(self.maxRange))
-                self.sortedAddVer(HTMLPage, coords, yMax, secondZ, firstY, firstZ)
-            elif (r[0] == '<'):
-                self.sortedAddVer(HTMLPage, coords, firstY, firstZ, secondY, secondZ)
-            else:
-                self.sortedAddVer(HTMLPage, coords, firstY, firstZ, firstY, firstZ)
+                if (r[0] == '>'):
+                    yMax = secondY + float('.' + str(self.maxRange))
+                    self.sortedAddVer(HTMLPage, coords, yMax, secondZ, firstY, firstZ)
+                elif (r[0] == '<'):
+                    self.sortedAddVer(HTMLPage, coords, firstY, firstZ, secondY, secondZ)
+                else:
+                    self.sortedAddVer(HTMLPage, coords, firstY, firstZ, firstY, firstZ)
+            except ValueError:
+                self.logger.debug('Couldnt generate versions for range: %s' % r)
 
-        return self.mavenCentralVersions
 
     def sortedAddVer(self, HTMLPage, coords, AY, AZ, BY, BZ):
         self.logger.debug('AY:%.2f, AZ:%d, BY:%.1f, BZ:%d', AY, AZ, BY, BZ)
@@ -164,9 +189,9 @@ class JavaLibrary(BaseLibrary):
         results = self.regex_search(tmpVers, HTMLPage)
         if len(results) > 0:
             for (fullVer) in results:
-                self.mavenCentralVersions.append(fullVer)
+                self.mavenVersions.add(fullVer)
         else:
-           self.logger.debug(tmpAnchor + " not find on " + coords)
+           self.logger.debug(tmpAnchor + " not found on " + coords)
 
     def regex_search(self, tmpVers, target):
         self.logger.debug('tmpVers: %s', tmpVers)
@@ -179,3 +204,77 @@ class JavaLibrary(BaseLibrary):
             self.logger.debug('result: %s', result)
             uniqueResults.add("%s%s" % (tmpVers, result))
         return uniqueResults
+
+    def confirmVersions(self):
+        coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + self.artifactId
+        self.logger.debug("coords %s", coords)
+        try:
+            response = urllib2.urlopen(coords)
+        except urllib2.URLError, e:
+            if not hasattr(e, "code"):
+                raise
+            response = e
+            self.logger.error("Response code:%s, Error with MavenPage: %s", response.code,
+                response.msg)
+            return []
+
+        self.findInMaven(response)
+
+    def findInMaven(self, response):
+
+        def getVersionRegex(target):
+            return re.compile('^' + target.replace('.', '\.'))
+
+        def findByRegex(target, soup):
+            self.logger.debug('target: %s' % target)
+            targetRegex = getVersionRegex(target)
+            self.logger.debug('using regex %s' % targetRegex.pattern)
+            link = soup.find('a', text=targetRegex)
+            if link:
+                self.logger.debug('found link: %s' % link)
+                return link
+            else:
+                self.logger.warn('target \'%s\' not found' % target)
+
+        def findByRegexReverse(target, soup):
+            self.logger.debug('target reverse: %s' % target)
+            targetRegex = getVersionRegex(target)
+            self.logger.debug('using regex %s' % targetRegex.pattern)
+            links = soup.find_all('a', text=targetRegex)
+            if links is None or len(links) == 0:
+                self.logger.warn('target \'%s\' not found' % target)
+            else:
+                #The last anchor found
+                return links.pop()
+
+
+        #TODO cache page locally for redundency
+        mavenPage = response.read()
+        soup = BeautifulSoup(mavenPage, 'html.parser')
+        links = soup.find_all('a')
+
+        for version in self.versions:
+            if version.condition == '<=':
+                self.logger.debug('condition was <=')
+                startLinkIndex = links.index(findByRegex(version.series, soup))
+                endLinkIndex = links.index(findByRegexReverse(version.base, soup))
+                affectedLinks = links[startLinkIndex:endLinkIndex + 1]
+                self.logger.debug('%s affected links found' % len(affectedLinks))
+                for affectedLink in affectedLinks:
+                    self.mavenVersions.add(affectedLink.get_text().rstrip('/'))
+            else:
+                self.logger.warn('%s condition was not matched' % version.condition)
+
+    #anchorRegex = re.compile(('?:[\d.]*(?=\.))(?P<postfix>.*)?')
+    def findAllInSeries(self, baseAnchor):
+        decimalCount = self.decimalCount(baseAnchor.get_text())
+        for version in self.versions:
+            if(version.condition == '>='):
+                for anchor in baseAnchor.find_next_siblings("a"):
+                    if version.series is not None:
+                        seriesRegex = re.compile('^' + version.series)
+                        if seriesRegex.match(anchor.get_text()):
+                            self.mavenVersions.add(anchor.get_text().rstrip('/'))
+
+    def decimalCount(self, version):
+        return version.count('.')

@@ -20,10 +20,7 @@ logger = logging.getLogger('victimsDBBuilder')
 
 def uploadArchive(username, password, filename, gid, aid, vid, cves):
     logger.info("uploading file: %s" % filename)
-    if not isinstance(cves, basestring):
-        cves = ','.join(cves)
-    path = "/service/v2/submit/archive/java/?version=%s\&groupId=%s\&artifactId=%s\&cves=%s" % (
-        vid, gid, aid, cves)
+    path = getPath(gid, aid, vid, cves)
     url = server + path
     #date = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     with open(filename, 'rb') as archive:
@@ -36,7 +33,22 @@ def uploadArchive(username, password, filename, gid, aid, vid, cves):
             #	"Date": date},
             files=files,
             auth = (username, password),
-	    verify='gd_bundle-g2.crt'
-            )
-    	logger.info(response.text)
+            verify='gd_bundle-g2.crt'
+        )
+        logger.info(response.text)
 
+def submit(username, password, gid, aid, vid, cves):
+    path = getPath(gid, aid, vid, cves)
+    url = server + path
+    logger.info("Submitting to path: %s" % url)
+    response = requests.put(url,
+        auth = (username, password),
+        verify='gd_bundle-g2.crt'
+    )
+    logger.info(response.text)
+
+def getPath(gid, aid, vid, cves):
+    if not isinstance(cves, basestring):
+	cves = ','.join(cves)
+    return "/service/v2/submit/archive/java/?version=%s&groupId=%s&artifactId=%s&cves=%s" % (
+            vid, gid, aid, cves)
