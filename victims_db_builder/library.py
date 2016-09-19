@@ -112,18 +112,22 @@ class JavaLibrary(BaseLibrary):
         repos = config.items('java_repos')
         print "repos: %s" % repos
         for repo, url in repos:
-            self.logger.debug('repo: %s' % repo)
-            if repo == 'central':
-                self.logger.debug('setting index to %s' % url)
-                self.indexBaseUrl = url
-                self.anchor = config.get('java', 'anchor', 1,
-                    {'groupId': self.groupId, 'artifactId' : self.artifactId})
-                self.confirmCentralVersions()
-                self.indexBaseUrl = config.get('java', 'download_base_url')
-                self.confirmVersions()
-            elif repo == 'redhat':
-                self.indexBaseUrl = url
-                self.confirmVersions()
+            try:
+                self.logger.debug('repo: %s' % repo)
+                if repo == 'central':
+                    self.logger.debug('setting index to %s' % url)
+                    self.indexBaseUrl = url
+                    self.anchor = config.get('java', 'anchor', 1,
+                        {'groupId': self.groupId, 'artifactId' : self.artifactId})
+                    self.confirmCentralVersions()
+                    self.indexBaseUrl = config.get('java', 'download_base_url')
+                    self.confirmVersions()
+                elif repo == 'redhat':
+                    self.indexBaseUrl = url
+                    self.confirmVersions()
+            except:
+                self.logger.warn('Processing of repo %s, skipping.' % repo)
+                continue
 
     def confirmCentralVersions(self):
         coords = self.indexBaseUrl + self.groupId + "/" + self.artifactId
