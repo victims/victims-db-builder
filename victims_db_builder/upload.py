@@ -5,7 +5,6 @@ from datetime import datetime
 import logging
 import logging.config
 import ConfigParser
-import certifi
 
 config = ConfigParser.SafeConfigParser()
 config.read('victims-db-builder.cfg')
@@ -44,7 +43,6 @@ def submit(username, password, gid, aid, vid, cves):
     logger.info("Submitting to path: %s" % url)
     response = requests.put(url,
         auth = (username, password),
-        #verify = certifi.where()
         verify = False
     )
     logger.info(response.text)
