@@ -2,6 +2,8 @@ import itertools
 import httplib, string
 import urllib2
 import re
+from decimal import *
+import sys
 from version import Version
 
 class BaseLibrary(object):
@@ -99,6 +101,7 @@ from bs4 import BeautifulSoup
 from os import environ
 class JavaLibrary(BaseLibrary):
     def __init__(self, versionRange, groupId, artifactId):
+        getcontext().prec = 2
         self.logger = logging.getLogger(__name__)
         super(JavaLibrary, self).__init__(versionRange)
         self.groupId = groupId
@@ -122,7 +125,7 @@ class JavaLibrary(BaseLibrary):
                     self.confirmCentralVersions()
                     self.indexBaseUrl = config.get('java', 'download_base_url')
                     self.confirmVersions()
-                elif repo == 'redhat':
+                else:
                     self.indexBaseUrl = url
                     self.confirmVersions()
             except:
@@ -152,14 +155,14 @@ class JavaLibrary(BaseLibrary):
             try:
                 #split out values, for ['9.2.8', '9.2.0']
                 valList= self.retlowHigh(listString[0])
-                firstY = float(valList[0])
+                firstY = Decimal(valList[0])
                 firstZ = int(valList[1])
                 valList= self.retlowHigh(listString[1])
-                secondY = float(valList[0])
+                secondY = Decimal(valList[0])
                 secondZ = int(valList[1])
 
                 if (r[0] == '>'):
-                    yMax = secondY + float('.' + str(self.maxRange))
+                    yMax = secondY + Decimal('0.' + str(self.maxRange))
                     self.sortedAddVer(HTMLPage, coords, yMax, secondZ, firstY, firstZ)
                 elif (r[0] == '<'):
                     self.sortedAddVer(HTMLPage, coords, firstY, firstZ, secondY, secondZ)
@@ -170,7 +173,7 @@ class JavaLibrary(BaseLibrary):
 
 
     def sortedAddVer(self, HTMLPage, coords, AY, AZ, BY, BZ):
-        self.logger.debug('AY:%.2f, AZ:%d, BY:%.1f, BZ:%d', AY, AZ, BY, BZ)
+        self.logger.debug('AY:%.2f, AZ:%d, BY:%.2f, BZ:%d', AY, AZ, BY, BZ)
         ver = BY
         while ver >= BY and ver <= AY:
             if (ver == BY and ver == AY):
@@ -180,12 +183,14 @@ class JavaLibrary(BaseLibrary):
                 for i in range (BZ, self.maxRange):
                     self.addVer(ver, i, HTMLPage, coords)
             elif (ver == AY):
+                self.logger.debug('Matched ver to AY: %d == %d' % (ver, AY))
                 for i in range(AZ+1):
                     self.addVer(ver, i, HTMLPage, coords)
             else:
+                self.logger.debug('Didnt matched ver to AY: %d != %d' % (ver, AY))
                 for i in range(self.maxRange):
                     self.addVer(ver, i, HTMLPage, coords)
-            ver += 0.1
+            ver = ver + Decimal(0.1)
 
     def addVer(self, ver, i, HTMLPage, coords):
         tmpVers = str(ver) + "." + str(i)
