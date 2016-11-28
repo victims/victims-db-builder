@@ -34,7 +34,7 @@ def uploadArchive(username, password, filename, gid, aid, vid, cves):
             files=files,
             auth = (username, password),
             verify=False
-        )
+       )
         logger.info(response.text)
 
 def submit(username, password, gid, aid, vid, cves):
@@ -43,7 +43,7 @@ def submit(username, password, gid, aid, vid, cves):
     logger.info("Submitting to path: %s" % url)
     response = requests.put(url,
         auth = (username, password),
-        verify=False
+        verify = False
     )
     logger.info(response.text)
 
