@@ -258,7 +258,10 @@ class JavaLibrary(BaseLibrary):
         links = soup.find_all('a')
 
         for version in self.versions:
-            if version.condition == '<=':
+            if version.condition == '==':
+                self.version.debug('condition was ==')
+                self.version.debug('version is %s' % version)
+            elif version.condition == '<=':
                 self.logger.debug('condition was <=')
                 startLinkIndex = links.index(findByRegex(version.series, soup))
                 endLinkIndex = links.index(findByRegexReverse(version.base, soup))

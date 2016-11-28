@@ -33,7 +33,7 @@ def uploadArchive(username, password, filename, gid, aid, vid, cves):
             #	"Date": date},
             files=files,
             auth = (username, password),
-            verify='gd_bundle-g2.crt'
+            verify=False
         )
         logger.info(response.text)
 
@@ -43,7 +43,7 @@ def submit(username, password, gid, aid, vid, cves):
     logger.info("Submitting to path: %s" % url)
     response = requests.put(url,
         auth = (username, password),
-        verify='gd_bundle-g2.crt'
+        verify=False
     )
     logger.info(response.text)
 
