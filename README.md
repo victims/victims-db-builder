@@ -34,12 +34,22 @@ Once this is complete, you should see the name prepended to the command prompt e
 
 #### Install the required dependencies
 
-Install both of the 'requests', 'pyyaml', and 'nose' dependencies using 'pip':
+Install dependencies using 'pip':
 ```sh
-pip install requests pyyaml nose
+ pip install -r requirements.txt
+```
+
+Submit a single report:
+```sh
+ python processor.py ../tests/data/7501.yaml <username> <password>
 ```
 
 #### Run the test suite
+
+Install test dependencies using pip
+```sh
+  pip install -r test-requirements.txt
+```
 
 Use 'nose' to execute the test suite, found in the 'tests' directory using:
 ```sh
