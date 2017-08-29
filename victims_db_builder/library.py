@@ -443,30 +443,3 @@ class StructureHelper:
 
     def addToLinks(self, link):
         self.links.add(link)
-
-
-# if __name__ == '__main__':
-
-
-    # data = yaml.load(file('/home/hoomanb/git_projects/victims-db-builder/tests/data/6504.yaml'))
-    # libraries = data['affected']
-    # loaded_libraries = []
-    # for affectedLibrary in libraries:
-    #     version = affectedLibrary['version']
-    #     artifactId = affectedLibrary['artifactId']
-    #     groupId = affectedLibrary['groupId']
-    #     lib = JavaLibrary(version, groupId, artifactId)
-    # lib = JavaLibrary([">=1.7.0,1"], "org.codehaus.groovy", "groovy-all")
-    # lib = JavaLibrary(["<=2.4.3,2.4"], "org.codehaus.groovy", "groovy-all")
-    # lib = JavaLibrary(['<=7.5.15,7'], "org.jboss.web", "jbossweb")
-    # lib = JavaLibrary(['<=2.0.11.2,2.0', '<=2.1.2,2.1'], "org.apache.struts", "struts2-core")
-    # lib = JavaLibrary(['>=9.2.3,9.2', '<=9.2.8,9.2'], "org.eclipse.jetty", "jetty-http")
-    # lib = JavaLibrary(['<=3.2.13,3.2', '<=4.1.6,4'], "org.springframework", "spring-web")
-
-    # lib = JavaLibrary(["<=2.4.3,2"], "org.codehaus.groovy", "groovy-all")
-    # lib = JavaLibrary(["<=2.3.3,2.3"], "org.codehaus.groovy", "groovy-all")
-
-    # lib = JavaLibrary(['<=3.2.1.redhat-3'], "commons-collections", "commons-collections")
-# print lib.mavenVersions
-# print lib.versionRanges
-# print lib.affectedMavenVersions

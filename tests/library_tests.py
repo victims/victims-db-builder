@@ -5,18 +5,18 @@ import re
 from victims_db_builder.library import BaseLibrary, JavaLibrary
 
 
-# def test_multi_libraries():
-#     data = yaml.load(file('tests/data/6504.yaml'))
-#     libraries = data['affected']
-#     loaded_libraries = []
-#     for affectedLibrary in libraries:
-#         version = affectedLibrary['version']
-#         artifactId = affectedLibrary['artifactId']
-#         groupId = affectedLibrary['groupId']
-#         lib = JavaLibrary(version, groupId, artifactId)
-#         assert len(lib.versions) >= 1
-#         loaded_libraries.append(lib)
-#     assert len(loaded_libraries) == 4
+def test_multi_libraries():
+    data = yaml.load(file('tests/data/6504.yaml'))
+    libraries = data['affected']
+    loaded_libraries = []
+    for affectedLibrary in libraries:
+        version = affectedLibrary['version']
+        artifactId = affectedLibrary['artifactId']
+        groupId = affectedLibrary['groupId']
+        lib = JavaLibrary(version, groupId, artifactId)
+        assert len(lib.versions) >= 1
+        loaded_libraries.append(lib)
+    assert len(loaded_libraries) == 4
 
 def testJettyShouldContainExpectedVersions():
     expectedVersions = ['9.2.4.v20141103', '9.2.5.v20141112', '9.2.6.v20141205', '9.2.7.v20150116']
