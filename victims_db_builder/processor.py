@@ -1,4 +1,3 @@
-from download import MavenDownloader
 import vulnerability
 import upload
 from os import walk, path
@@ -34,10 +33,9 @@ def processReport(yamlFile, username, password):
     for library in vuln.libraries:
         groupId = library.groupId
         artifactId = library.artifactId
-        for version in library.mavenVersions:
-            print "version %s" % version
-            upload.submit(username, password, groupId, artifactId,
-                version, vuln.cve)
+        version = library.version
+        print "version %s" % version
+        upload.submit(username, password, groupId, artifactId,version, vuln.cve)
 
 if __name__ == '__main__':
     main(argv)

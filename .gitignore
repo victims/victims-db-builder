@@ -58,3 +58,6 @@ target/
 
 .DS_Store
 dbbuild/
+
+.idea/
+venv
