@@ -17,89 +17,7 @@ class BaseLibrary(object):
         else:
             self.versions.append(Version(versionRanges))
 
-        # for Maven central
         self.versionRanges = versionRanges
-        self.fixVersionRange()
-        # TODO push out to config
-        self.maxRange = 99
-
-    def splitRange(self, numRange):
-        tmpVers = []
-        if ',' in numRange:
-            tmpVers = string.split(numRange, ',')
-        else:
-            tmpBase = self.retlowHigh(numRange)
-            tmpVers.append(numRange)
-            tmpVers.append(tmpBase[0])
-        return tmpVers
-
-    # Assumes string "4.0.2"
-    # Returns list of [4.0,2] for looping as float
-    def retlowHigh(self, string):
-        valList = []
-        k = string.rfind(".")
-        valList.append(string[:k])
-        valList.append(string[k + 1:])
-        return valList
-
-    ## Turn version into list, without beginning symbols
-    def genVerString(self, version):
-        numRangeArray = self.splitRange(version[2:])
-        toScale = numRangeArray[0].count('.')
-        fromScale = numRangeArray[1].count('.')
-        fromValue = numRangeArray[1]
-        while fromScale < toScale:
-            fromValue += '.0'
-            fromScale = fromValue.count('.')
-            numRangeArray[1] = fromValue
-        return numRangeArray
-
-    # Remove duplicates and merge ranges in the version listing
-    def fixVersionRange(self):
-        tmpVerRanges = []
-        if (len(self.versionRanges) > 1):
-            for a, b in itertools.combinations(self.versionRanges, 2):
-                AListSplit = self.genVerString(a)
-                AList = string.split(AListSplit[0], '.')
-                BListSplit = self.genVerString(b)
-                BList = string.split(BListSplit[0], '.')
-                if len(BList) != 3 or len(AList) != 3:
-                    # give up trying to fix version ranges
-                    return
-                AX = AList[0]
-                AY = AList[1]
-                AZ = AList[2]
-                BX = BList[0]
-                BY = BList[1]
-                BZ = BList[2]
-
-                if ((AX != BX) or (AY != BY)):
-                    if (not a in tmpVerRanges): tmpVerRanges.append(a)
-                    if (not b in tmpVerRanges): tmpVerRanges.append(b)
-                else:
-                    if (a[0] == b[0]):
-                        # if the same symbol for the same X.Y version,
-                        # assume last entry is correct
-                        # switch out old for new version
-                        if (not b in tmpVerRanges): tmpVerRanges.append(b)
-                    else:
-                        # symbols are different, need to combine two versions
-                        if (a[0] == '<' and b[0] == '>'):
-                            if (AZ < BZ):
-                                if (not a in tmpVerRanges): tmpVerRanges.append(a)
-                                if (not b in tmpVerRanges): tmpVerRanges.append(b)
-                            else:
-                                tmpVersion = '<=' + str(AListSplit[0]) + ',' + BListSplit[0]
-                                tmpVerRanges.append(tmpVersion)
-                        else:
-                            if (AZ > BZ):
-                                if (not a in tmpVerRanges): tmpVerRanges.append(a)
-                                if (not b in tmpVerRanges): tmpVerRanges.append(b)
-                            else:
-                                tmpVersion = '<=' + str(BListSplit[0]) + ',' + AListSplit[0]
-                                tmpVerRanges.append(tmpVersion)
-                                # self.versionRanges = tmpVerRanges
-
 
 import re
 import logging
@@ -117,6 +35,7 @@ class JavaLibrary(BaseLibrary):
         self.mavenVersions = set()
         self.affectedMvnSeries = set()
         self.configure()
+        self.findAllInSeries()
 
     def configure(self):
         config = ConfigParser.ConfigParser()
@@ -126,21 +45,12 @@ class JavaLibrary(BaseLibrary):
         for repo, url in repos:
             try:
                 self.logger.debug('repo: %s' % repo)
-                if repo == 'central':
-                    self.logger.debug('setting index to %s' % url)
-                    self.indexBaseUrl = url
-                    self.anchor = config.get('java', 'anchor', 1,
-                                             {'groupId': self.groupId, 'artifactId': self.artifactId})
-                    # self.confirmCentralVersions()
-                    self.indexBaseUrl = config.get('java', 'download_base_url')
-                    self.confirmVersions()
-                else:
-                    self.indexBaseUrl = url
-                    self.confirmVersions()
+                self.indexBaseUrl = url
+                self.confirmVersions()
             except:
                 self.logger.warn('Processing of repo %s, skipping.' % repo)
                 continue
-        self.findAllInSeries()
+
 
     def confirmVersions(self):
         coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + self.artifactId
@@ -154,50 +64,13 @@ class JavaLibrary(BaseLibrary):
 
     def findInMaven(self, response):
 
-        def getVersionRegex(target):
-            return re.compile('^' + target.replace('.', '\.'))
-
-        def findByRegex(target, soup):
-            self.logger.debug('target: %s' % target)
-            targetRegex = getVersionRegex(target)
-            self.logger.debug('using regex %s' % targetRegex.pattern)
-            link = soup.find('a', text=targetRegex)
-            if link:
-                self.logger.debug('found link: %s' % link)
-                return link
-            else:
-                self.logger.warn('target \'%s\' not found' % target)
-
-        def findByRegexReverse(target, soup):
-            self.logger.debug('target reverse: %s' % target)
-            targetRegex = getVersionRegex(target)
-            self.logger.debug('using regex %s' % targetRegex.pattern)
-            links = soup.find_all('a', text=targetRegex)
-            if links is None or len(links) == 0:
-                self.logger.warn('target \'%s\' not found' % target)
-            else:
-                # The last anchor found
-                return links.pop()
-
         # TODO cache page locally for redundency
         mavenPage = response.read()
         soup = BeautifulSoup(mavenPage, 'html.parser')
         links = soup.find_all('a')
+        for link in links:
+            self.mavenVersions.add(link.get_text().rstrip('/'))
 
-        for version in self.versions:
-            if version.condition == '==':
-                self.version.debug('condition was ==')
-                self.version.debug('version is %s' % version)
-            elif version.condition == '<=':
-                self.logger.debug('condition was <=')
-                startLinkIndex = links.index(findByRegex(version.series, soup))
-                endLinkIndex = links.index(findByRegexReverse(version.base, soup))
-                affectedLinks = links[startLinkIndex:endLinkIndex + 1]
-                self.logger.debug('%s affected links found' % len(affectedLinks))
-                for affectedLink in affectedLinks:
-                    self.mavenVersions.add(affectedLink.get_text().rstrip('/'))
-            else:
-                self.logger.warn('%s condition was not matched' % version.condition)
 
     def findAllInSeries(self):
         verList = []
@@ -369,7 +242,8 @@ class JavaLibrary(BaseLibrary):
         else:
             self.logger.warn('either affected version range is unavailable')
 
-        print self.affectedMvnSeries
+        for version in self.affectedMvnSeries:
+            self.logger.debug(version.version)
 
     def populatedAffectedLibraries(self, attachedSuffix, comparableVersion):
         self.affectedMvnSeries.add(

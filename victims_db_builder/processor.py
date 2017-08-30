@@ -1,4 +1,3 @@
-from download import MavenDownloader
 import vulnerability
 import upload
 from os import walk, path
