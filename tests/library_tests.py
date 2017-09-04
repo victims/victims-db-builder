@@ -153,6 +153,23 @@ def testGroovyallShouldNotContainVersions():
     assert len(lib.affectedMvnSeries) != 0
     confirm_versions_does_not_exist(shouldNotBeInTheList, lib)
 
+def testApacheHadoopShouldContainVersions():
+    expectedVersions = ['2.0.1-alpha','2.2.0', '0.23.9', '2.1.0-beta', '0.23.6', '0.23.4', '0.22.0', '0.23.1',
+                        '2.3.0', '2.0.0-alpha', '2.4.1', '2.4.0', '2.5.2', '2.5.0', '0.23.10', '2.5.1', '2.6.1',
+                        '2.6.0', '2.6.3', '2.6.2', '0.23.7', '2.6.4', '2.0.2-alpha', '2.6.5', '2.0.6-alpha',
+                        '2.0.4-alpha', '0.23.5', '2.1.1-beta', '2.0.3-alpha', '0.23.3', '2.0.5-alpha', '0.23.8',
+                        '0.23.11']
+    lib = JavaLibrary(["<=2.6.5"], "org.apache.hadoop", "hadoop-hdfs")
+    assert len(lib.affectedMvnSeries) != 0
+    confirm_versions_matches(expectedVersions, lib)
+
+def testApacheHadoopShouldNotContainVersions():
+    shouldNotBeInTheList = ['2.7.4', '2.7.2', '2.8.0']
+    lib = JavaLibrary(["<=2.6.5"], "org.apache.hadoop", "hadoop-hdfs")
+    assert len(lib.affectedMvnSeries) != 0
+    confirm_versions_does_not_exist(shouldNotBeInTheList, lib)
+
+
 
 def confirm_versions_matches(expectedVersions, lib):
     print('affected mvn series:')

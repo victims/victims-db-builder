@@ -194,6 +194,7 @@ class JavaLibrary(BaseLibrary):
         return baseVersion
 
     def findAllArtifacts(self, translatedVersions):
+        regex = '[0-9](\\.)'
 
         if len(self.mavenVersions) == 0:
             self.logger.warn('acquired maven artifacts is empty')
@@ -201,6 +202,10 @@ class JavaLibrary(BaseLibrary):
         if len(translatedVersions) != 0:
             for version in translatedVersions:
                 for mvn in self.mavenVersions:
+                    res = re.compile(regex)
+                    matched = res.search(mvn)
+                    if matched is None:
+                        continue
                     mavenSuffix = []
                     found = False
                     comparableVersion = ''
@@ -222,28 +227,35 @@ class JavaLibrary(BaseLibrary):
                     for su in mavenSuffix:
                         attachedSuffix += str(su)
 
-                    # Case where boundary version is specified as one digit i.e 9
-                    if len(version.boundary) == 1 and version.boundary == comparableVersion[:1]:
-                        self.compareVersions(attachedSuffix, comparableVersion, version)
+                    if version.boundary is not None:
+                        # Case where boundary version is specified as one digit i.e 9
+                        if len(version.boundary) == 1 and version.boundary == comparableVersion[:1]:
+                            self.compareVersions(attachedSuffix, comparableVersion, version)
 
-                    # Case where boundary version is specified with decimal point i.e 9.2
-                    if len(version.boundary) == 3 and version.boundary == self.normalizeText(comparableVersion):
-                        # Case where affected versions are between to versions
-                        if version.greaterThanOrEqualTo is not None and version.lessThanOrEqualTo is not None:
-                            if (LooseVersion(comparableVersion) == LooseVersion(version.greaterThanOrEqualTo.replace('<=', '')) or
-                                    (LooseVersion(comparableVersion) < LooseVersion(version.greaterThanOrEqualTo.replace('<=', ''))
-                                     and LooseVersion(comparableVersion) > LooseVersion(version.lessThanOrEqualTo.replace('>=', '')))) and \
-                                (LooseVersion(comparableVersion) == LooseVersion(version.lessThanOrEqualTo.replace('>=', '')) or
-                                     (LooseVersion(comparableVersion) > LooseVersion(version.lessThanOrEqualTo.replace('>=', '')) and
-                                      LooseVersion(comparableVersion) < LooseVersion(version.greaterThanOrEqualTo.replace('<=', '')))):
-                                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
-                        self.compareVersions(attachedSuffix, comparableVersion, version)
+                        # Case where boundary version is specified with decimal point i.e 9.2
+                        if len(version.boundary) == 3 and version.boundary == self.normalizeText(
+                                comparableVersion):
+                            # Case where affected versions are between to versions
+                            if version.greaterThanOrEqualTo is not None and version.lessThanOrEqualTo is not None:
+                                if (LooseVersion(comparableVersion) == LooseVersion(
+                                        version.greaterThanOrEqualTo.replace('<=', '')) or
+                                        (LooseVersion(comparableVersion) < LooseVersion(
+                                            version.greaterThanOrEqualTo.replace('<=', ''))
+                                         and LooseVersion(comparableVersion) > LooseVersion(
+                                                version.lessThanOrEqualTo.replace('>=', '')))) and \
+                                        (LooseVersion(comparableVersion) == LooseVersion(
+                                            version.lessThanOrEqualTo.replace('>=', '')) or
+                                             (LooseVersion(comparableVersion) > LooseVersion(
+                                                 version.lessThanOrEqualTo.replace('>=', '')) and
+                                                      LooseVersion(comparableVersion) < LooseVersion(
+                                                      version.greaterThanOrEqualTo.replace('<=', '')))):
+                                    self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                            self.compareVersions(attachedSuffix, comparableVersion, version)
 
+                    elif comparableVersion is not '':
+                        self.compareVersions(attachedSuffix, comparableVersion, version)
         else:
             self.logger.warn('either affected version range is unavailable')
-
-        for version in self.affectedMvnSeries:
-            self.logger.debug(version.version)
 
     def populatedAffectedLibraries(self, attachedSuffix, comparableVersion):
         self.affectedMvnSeries.add(
@@ -294,18 +306,19 @@ class EqualBaseVersion:
 
         for arg in args:
             for each in arg:
-                if '==' in each:
-                    self.equal = each
-                elif '>=' in each:
-                    self.lessThanOrEqualTo = each
-                elif '<=' in each:
-                    self.greaterThanOrEqualTo = each
-                elif '>' in each and '=' not in each:
-                    self.lessThan = each
-                elif '<' in each and '=' not in each:
-                    self.greaterThan = each
-                else:
-                    self.boundary = each
+                if each is not None:
+                    if '==' in each:
+                        self.equal = each
+                    elif '>=' in each:
+                        self.lessThanOrEqualTo = each
+                    elif '<=' in each:
+                        self.greaterThanOrEqualTo = each
+                    elif '>' in each and '=' not in each:
+                        self.lessThan = each
+                    elif '<' in each and '=' not in each:
+                        self.greaterThan = each
+                    else:
+                        self.boundary = each
 
 
 class StructureHelper:
@@ -317,3 +330,4 @@ class StructureHelper:
 
     def addToLinks(self, link):
         self.links.add(link)
+
