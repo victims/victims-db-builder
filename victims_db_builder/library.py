@@ -234,7 +234,7 @@ class JavaLibrary(BaseLibrary):
                             self.compareVersions(attachedSuffix, comparableVersion, version)
 
                         # Case where boundary version is specified with decimal point i.e 9.2
-                        if len(version.boundary) >= 3 and version.boundary == self.normalizeText(
+                        if '.' in version.boundary and version.boundary == self.normalizeText(
                                 comparableVersion):
                             # Case where affected versions are between to versions
                             if version.greaterThanOrEqualTo is not None and version.lessThanOrEqualTo is not None:
