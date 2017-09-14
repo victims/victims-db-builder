@@ -122,8 +122,8 @@ class JavaLibrary(BaseLibrary):
                 versionRange.append(each.symbol + each.version)
                 finalVersionRanges.append(EqualBaseVersion(versionRange))
         else:
-            versionRange = []
             for each in verList:
+                versionRange = []
                 versionRange.append(each.symbol + each.version)
                 versionRange.append(each.boundary)
                 finalVersionRanges.append(EqualBaseVersion(versionRange))
@@ -187,11 +187,12 @@ class JavaLibrary(BaseLibrary):
             links.append(c)
 
     def normalizeText(self, text):
-        baseVersion = ''
-        for indx, char in enumerate(text):
-            if indx <= 2:
-                baseVersion += str(char)
-        return baseVersion
+        if text is not None:
+            regex = '[0-9]+\.[0-9]+'
+            res = re.compile(regex)
+            matched = res.search(text)
+            return matched.group(0)
+
 
     def findAllArtifacts(self, translatedVersions):
         regex = '[0-9](\\.)'
@@ -227,13 +228,13 @@ class JavaLibrary(BaseLibrary):
                     for su in mavenSuffix:
                         attachedSuffix += str(su)
 
-                    if version.boundary is not None:
+                    if version.boundary is not None and comparableVersion is not '':
                         # Case where boundary version is specified as one digit i.e 9
-                        if len(version.boundary) == 1 and version.boundary == comparableVersion[:1]:
+                        if '.' not in version.boundary and version.boundary == self.getBoundary(comparableVersion):
                             self.compareVersions(attachedSuffix, comparableVersion, version)
 
                         # Case where boundary version is specified with decimal point i.e 9.2
-                        if len(version.boundary) == 3 and version.boundary == self.normalizeText(
+                        if '.' in version.boundary and version.boundary == self.normalizeText(
                                 comparableVersion):
                             # Case where affected versions are between to versions
                             if version.greaterThanOrEqualTo is not None and version.lessThanOrEqualTo is not None:
@@ -256,6 +257,13 @@ class JavaLibrary(BaseLibrary):
                         self.compareVersions(attachedSuffix, comparableVersion, version)
         else:
             self.logger.warn('either affected version range is unavailable')
+
+
+    def getBoundary(self, normalizedText):
+        regex = '[0-9]+'
+        res = re.compile(regex)
+        matched = res.search(normalizedText)
+        return matched.group(0)
 
     def populatedAffectedLibraries(self, attachedSuffix, comparableVersion):
         self.affectedMvnSeries.add(
@@ -330,4 +338,3 @@ class StructureHelper:
 
     def addToLinks(self, link):
         self.links.add(link)
-
