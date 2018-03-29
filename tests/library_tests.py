@@ -6,7 +6,8 @@ from victims_db_builder.library import BaseLibrary, JavaLibrary
 
 
 def test_multi_libraries():
-    data = yaml.load(file('tests/data/6504.yaml'))
+    with open('tests/data/6504.yaml', 'r') as f:
+        data = yaml.load(f)
     libraries = data['affected']
     loaded_libraries = []
     for affectedLibrary in libraries:
@@ -31,7 +32,7 @@ def confirm_versions_does_not_exist(shouldNotBeInTheList, lib):
     if isinstance(shouldNotBeInTheList, list):
         for var in shouldNotBeInTheList:
             assert not any(val.version == var for val in lib.affectedMvnSeries)
-    if isinstance(shouldNotBeInTheList, basestring):
+    if isinstance(shouldNotBeInTheList, str):
         assert not any(var.version == shouldNotBeInTheList for var in lib.affectedMvnSeries)
 
 
@@ -163,6 +164,7 @@ def testApacheHadoopShouldContainVersions():
     assert len(lib.affectedMvnSeries) != 0
     confirm_versions_matches(expectedVersions, lib)
 
+
 def testApacheHadoopShouldNotContainVersions():
     shouldNotBeInTheList = ['2.7.4', '2.7.2', '2.8.0']
     lib = JavaLibrary(["<=2.6.5"], "org.apache.hadoop", "hadoop-hdfs")
@@ -170,6 +172,8 @@ def testApacheHadoopShouldNotContainVersions():
     confirm_versions_does_not_exist(shouldNotBeInTheList, lib)
 
 
+def cmp(a, b):
+    return (a > b) - (a < b)
 
 def confirm_versions_matches(expectedVersions, lib):
     print('affected mvn series:')

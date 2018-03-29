@@ -4,7 +4,7 @@ from datetime import datetime
 #from hashlib import md5, sha512
 import logging
 import logging.config
-import ConfigParser
+import configparser as ConfigParser
 
 config = ConfigParser.SafeConfigParser()
 config.read('victims-db-builder.cfg')
@@ -49,6 +49,6 @@ def submit(username, password, gid, aid, vid, cves):
 
 def getPath(gid, aid, vid, cves):
     if not isinstance(cves, basestring):
-	cves = ','.join(cves)
+        cves = ','.join(cves)
     return "/service/v2/submit/archive/java/?version=%s&groupId=%s&artifactId=%s&cves=%s" % (
             vid, gid, aid, cves)
