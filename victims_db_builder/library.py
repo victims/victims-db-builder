@@ -1,6 +1,6 @@
 import itertools
 import string
-import urllib2
+import urllib.request as urllib2
 from decimal import *
 from distutils.version import LooseVersion
 
@@ -11,7 +11,7 @@ class BaseLibrary(object):
     def __init__(self, versionRanges):
         # For soup/direct maven index:
         self.versions = []
-        if not isinstance(versionRanges, basestring):
+        if not isinstance(versionRanges, str):
             for vr in versionRanges:
                 self.versions.append(Version(vr))
         else:
@@ -21,7 +21,7 @@ class BaseLibrary(object):
 
 import re
 import logging
-import ConfigParser
+import configparser as ConfigParser
 from bs4 import BeautifulSoup
 
 
@@ -41,35 +41,39 @@ class JavaLibrary(BaseLibrary):
         config = ConfigParser.ConfigParser()
         config.read('victims-db-builder.cfg')
         repos = config.items('java_repos')
-        print "repos: %s" % repos
+        print("repos: %s" % repos)
         for repo, url in repos:
             try:
                 self.logger.debug('repo: %s' % repo)
                 self.indexBaseUrl = url
                 self.confirmVersions()
-            except:
+            except Exception as err:
+                self.logger.warn(err)
                 self.logger.warn('Processing of repo %s, skipping.' % repo)
                 continue
 
 
     def confirmVersions(self):
-        coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + self.artifactId
+        coords = self.indexBaseUrl + self.groupId.replace('.', '/') + "/" + str(self.artifactId)
         self.logger.debug("coords %s", coords)
         try:
             response = urllib2.urlopen(coords)
-        except urllib2.URLError, e:
+        except urllib2.URLError as e:
             if response.code is 404:
                 pass
-        self.findInMaven(response)
 
-    def findInMaven(self, response):
+        self.findInMaven(response, coords)
+
+    def findInMaven(self, response, coords):
 
         # TODO cache page locally for redundency
         mavenPage = response.read()
         soup = BeautifulSoup(mavenPage, 'html.parser')
         links = soup.find_all('a')
         for link in links:
-            self.mavenVersions.add(link.get_text().rstrip('/'))
+            txt = link.get_text().rstrip('/')
+            url = coords + "/" + str(txt) + "/" + str(self.artifactId) + "-" + str(txt) + ".jar"
+            self.mavenVersions.add((txt, url))
 
 
     def findAllInSeries(self):
@@ -202,7 +206,7 @@ class JavaLibrary(BaseLibrary):
 
         if len(translatedVersions) != 0:
             for version in translatedVersions:
-                for mvn in self.mavenVersions:
+                for mvn, url in self.mavenVersions:
                     res = re.compile(regex)
                     matched = res.search(mvn)
                     if matched is None:
@@ -231,7 +235,7 @@ class JavaLibrary(BaseLibrary):
                     if version.boundary is not None and comparableVersion is not '':
                         # Case where boundary version is specified as one digit i.e 9
                         if '.' not in version.boundary and version.boundary == self.getBoundary(comparableVersion):
-                            self.compareVersions(attachedSuffix, comparableVersion, version)
+                            self.compareVersions(attachedSuffix, comparableVersion, version, url)
 
                         # Case where boundary version is specified with decimal point i.e 9.2
                         if '.' in version.boundary and version.boundary == self.normalizeText(
@@ -250,11 +254,11 @@ class JavaLibrary(BaseLibrary):
                                                  version.lessThanOrEqualTo.replace('>=', '')) and
                                                       LooseVersion(comparableVersion) < LooseVersion(
                                                       version.greaterThanOrEqualTo.replace('<=', '')))):
-                                    self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
-                            self.compareVersions(attachedSuffix, comparableVersion, version)
+                                    self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
+                            self.compareVersions(attachedSuffix, comparableVersion, version, url)
 
                     elif comparableVersion is not '':
-                        self.compareVersions(attachedSuffix, comparableVersion, version)
+                        self.compareVersions(attachedSuffix, comparableVersion, version, url)
         else:
             self.logger.warn('either affected version range is unavailable')
 
@@ -265,43 +269,43 @@ class JavaLibrary(BaseLibrary):
         matched = res.search(normalizedText)
         return matched.group(0)
 
-    def populatedAffectedLibraries(self, attachedSuffix, comparableVersion):
+    def populatedAffectedLibraries(self, attachedSuffix, comparableVersion, url):
         self.affectedMvnSeries.add(
-            AffectedJavaLibrary(self.groupId, self.artifactId, str(comparableVersion + attachedSuffix)))
+            AffectedJavaLibrary(self.groupId, self.artifactId, str(comparableVersion + attachedSuffix), url))
 
-    def compareVersions(self, attachedSuffix, comparableVersion, version):
+    def compareVersions(self, attachedSuffix, comparableVersion, version, url):
         if version.equal is not None:
             if LooseVersion(version.equal.replace('==', '')) == LooseVersion(comparableVersion):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
         if version.greaterThanOrEqualTo is not None and version.lessThanOrEqualTo is None:
             if LooseVersion(comparableVersion) == LooseVersion(version.greaterThanOrEqualTo.replace('<=', '')) or \
                             LooseVersion(comparableVersion) < LooseVersion(
                         version.greaterThanOrEqualTo.replace('<=', '')):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
         if version.lessThanOrEqualTo is not None and version.greaterThanOrEqualTo is None:
             if LooseVersion(comparableVersion) == LooseVersion(version.lessThanOrEqualTo.replace('>=', '')) or \
                             LooseVersion(comparableVersion) > LooseVersion(version.lessThanOrEqualTo.replace('>=', '')):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
         if version.greaterThan is not None:
             if LooseVersion(comparableVersion) < LooseVersion(version.greaterThan.replace('<', '')):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
         if version.lessThan is not None:
             if LooseVersion(comparableVersion) > LooseVersion(version.lessThan.replace('>', '')):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
 
         # Case where an affected version is between two other versions
         if version.lessThan is not None and version.greaterThan is not None:
             if LooseVersion(comparableVersion) < LooseVersion(version.greaterThan.replace('<', '')) and \
                             LooseVersion(comparableVersion) > LooseVersion(version.lessThan.replace('>', '')):
-                self.populatedAffectedLibraries(attachedSuffix, comparableVersion)
+                self.populatedAffectedLibraries(attachedSuffix, comparableVersion, url)
 
 
 class AffectedJavaLibrary:
-    def __init__(self, groupId, artifactId, version):
+    def __init__(self, groupId, artifactId, version, url=None):
         self.groupId = groupId
         self.artifactId = artifactId
         self.version = version
-
+        self.url = url
 
 class EqualBaseVersion:
     def __init__(self, *args):

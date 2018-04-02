@@ -1,13 +1,14 @@
 # victims-db-builder
 
 Parses CVE files from github.com/victims/victims-cve-db
-Downloads artifacts, and submits them to victims web api
+and fills out package_urls for use by the victims process.
 
 ## Development
 This is a short guide on how to work with this codebase
 
 ### Requirements
 
+* python 3.x
 * virtualenv
 * pip
 
@@ -19,7 +20,7 @@ virtualenv dbuild
 ```
 You should see the following output, and a new folder 'dbbuild' should be created.
 ```sh
-New python executable in dbbuild/bin/python2.7
+New python executable in dbbuild/bin/python3.5
 Also creating executable in dbbuild/bin/python
 Installing setuptools, pip, wheel...done.
 ```
@@ -39,9 +40,9 @@ Install dependencies using 'pip':
  pip install -r requirements.txt
 ```
 
-Submit a single report:
+Add package_urls to a single entry:
 ```sh
- python processor.py ../tests/data/7501.yaml <username> <password>
+ python victims_db_builder/processor.py ../tests/data/7501.yaml
 ```
 
 #### Run the test suite
